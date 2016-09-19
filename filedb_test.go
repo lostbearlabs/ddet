@@ -1,26 +1,32 @@
 package ddet
 
-import "testing"
+import (
+	"io/ioutil"
+	"os"
+	"testing"
+)
 
 func TestFnord(t *testing.T) {
-    expected := 2 
-    x := Fnord();
-    if x != expected {
-       t.Error("Expected", expected, "got", x) 
-    }
+	expected := 2
+	x := Fnord()
+	if x != expected {
+		t.Error("Expected", expected, "got", x)
+	}
 }
 
-
 func TestAll(t *testing.T) {
-	const dbpath = "foo.db"
+	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
+	defer os.Remove(dbdir)
+
+	dbpath := dbdir + "/foo.db"
 
 	db := InitDB(dbpath)
 	defer db.Close()
 	CreateTable(db)
 
 	items := []TestItem{
-		TestItem{"1", "A", "213"},
-		TestItem{"2", "B", "214"},
+		TestItem{"/foo1.txt", 1, 2, "AXB1"},
+		TestItem{"/foo3.txt", 3, 4, "XYZ3"},
 	}
 	StoreItem(db, items)
 
@@ -28,12 +34,21 @@ func TestAll(t *testing.T) {
 	t.Log(readItems)
 
 	items2 := []TestItem{
-		TestItem{"1", "C", "215"},
-		TestItem{"3", "D", "216"},
+		TestItem{"/foo2.txt", 2, 3, "AXB2"},
+		TestItem{"/foo4.txt", 4, 5, "XYZ4"},
 	}
 	StoreItem(db, items2)
 
 	readItems2 := ReadItem(db)
 	t.Log(readItems2)
-}
 
+	if len(readItems2) != 4 {
+		t.Error("wrong number of items, got ", len(readItems2))
+	}
+
+	expected := items[0]
+	probe := readItems2[0]
+	if expected != probe {
+		t.Error("bad value, expected=", expected, ", got=", probe)
+	}
+}
