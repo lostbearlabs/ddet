@@ -17,9 +17,6 @@ func main() {
     }
 }
 
-// TODO ... display summary stats after scan?
-// TODO ... display progress during scan?
-
 func doScan(path string) {
     fi, err := os.Stat(path)
     if err != nil {
@@ -39,5 +36,6 @@ func doScan(path string) {
 	
 	scanner := ddet.MakeScanner(db)
 	scanner.ScanFiles(path)
+	scanner.PrintSummary()
 	fmt.Printf("COMPLETED SCAN: %s\n", path)
 }
