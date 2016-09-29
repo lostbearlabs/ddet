@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func confirmItem(t *testing.T, it TestItem, path string) {
+func confirmItem(t *testing.T, it FileEntry, path string) {
 	if it.Path != path {
 		t.Error("wrong path, expected=", path, ", got=", it.Path)
 	}
@@ -36,12 +36,77 @@ func TestScan(t *testing.T) {
 	scanner := MakeScanner(db)
 	scanner.ScanFiles(dir)
 
-	readItems := ReadItem(db)
-	if len(readItems) != 3 {
-		t.Error("wrong length, expected=3, got=", len(readItems))
+	ReadAllFileEntriess := ReadAllFileEntries(db)
+	if len(ReadAllFileEntriess) != 3 {
+		t.Error("wrong length, expected=3, got=", len(ReadAllFileEntriess))
 	}
-	confirmItem(t, readItems[0], name1)
-	confirmItem(t, readItems[1], name2)
-	confirmItem(t, readItems[2], name3)
+	confirmItem(t, ReadAllFileEntriess[0], name1)
+	confirmItem(t, ReadAllFileEntriess[1], name2)
+	confirmItem(t, ReadAllFileEntriess[2], name3)
+
+}
+
+func TestScanUnchangedFile(t *testing.T) {
+
+	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
+	defer os.Remove(dbdir)
+
+	dir, _ := ioutil.TempDir(os.TempDir(), "data")
+	defer os.Remove(dir)
+
+	name1 := dir + "/file1"
+	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
+
+	dbpath := dbdir + "/foo.db"
+	db := InitDB(dbpath)
+	defer db.Close()
+	CreateTable(db)
+
+	scanner := MakeScanner(db)
+	scanner.ScanFiles(dir)
+	read1 := ReadFileEntry(db, name1)
+
+	scanner2 := MakeScanner(db)
+	scanner2.ScanFiles(dir)
+	read2 := ReadFileEntry(db, name1)
+
+	if *read2 != *read1 {
+		t.Error("File should not have been scanned with no change, read1=", read1, ", read2=", read2)
+	}
+
+}
+
+func TestScanChangedFile(t *testing.T) {
+
+	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
+	defer os.Remove(dbdir)
+
+	dir, _ := ioutil.TempDir(os.TempDir(), "data")
+	defer os.Remove(dir)
+
+	name1 := dir + "/file1"
+	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
+
+	dbpath := dbdir + "/foo.db"
+	db := InitDB(dbpath)
+	defer db.Close()
+	CreateTable(db)
+
+	scanner := MakeScanner(db)
+	scanner.ScanFiles(dir)
+
+	read1 := ReadFileEntry(db, name1)
+
+	// change length of file.  (We can't reliably test mod time to within 1-second
+	// unless we stick a sleep in here?)
+	ioutil.WriteFile(name1, []byte("constant text string 22"), 0644)
+
+	scanner2 := MakeScanner(db)
+	scanner2.ScanFiles(dir)
+	read2 := ReadFileEntry(db, name1)
+
+	if *read2 == *read1 {
+		t.Error("File should have been scanned after change, read1=", read1, ", read2=", read2)
+	}
 
 }

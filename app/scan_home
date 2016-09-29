@@ -1,0 +1,6 @@
+#! /bin/bash
+set -E
+go build
+./app scan /home/ubuntu/workspace
+ 
+

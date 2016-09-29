@@ -4,6 +4,7 @@ import(
     "fmt"
     "com.lostbearlabs/ddet"
     "os"
+    "time"
 )
 
 func main() {
@@ -33,9 +34,20 @@ func doScan(path string) {
 	db := ddet.InitDB(dbpath)
 	defer db.Close()
 	ddet.CreateTable(db)
-	
+
 	scanner := ddet.MakeScanner(db)
+	
+    ticker := time.NewTicker(time.Second*1)
+    go func() {
+        for range ticker.C {
+            scanner.PrintSummary(false);
+        }
+    }()
+    
 	scanner.ScanFiles(path)
-	scanner.PrintSummary()
+	
+	ticker.Stop()
+	
+	scanner.PrintSummary(true)
 	fmt.Printf("COMPLETED SCAN: %s\n", path)
 }
