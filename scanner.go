@@ -1,7 +1,7 @@
 package ddet
 
 import (
-	"database/sql"
+	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -12,9 +12,8 @@ import (
 )
 
 type Scanner struct {
-	Db           *sql.DB
+	Db           *filedb.FileDB
 	wg           *sync.WaitGroup
-	results      chan FileEntry
 	filesFound   uint64
 	filesScanned uint64
 	filesUpdated uint64
@@ -40,35 +39,27 @@ func (scanner *Scanner) getFilesFound() uint64 {
 	return atomic.LoadUint64(&scanner.filesFound)
 }
 
-func (scanner *Scanner) saveResults() {
-	for {
-		// store file data in DB
-		item := <-scanner.results
-		//fmt.Printf("stored: %v\n", item)
-		StoreFileEntry(scanner.Db, []FileEntry{item})
-		scanner.wg.Done()
-	}
-}
-
 func (scanner *Scanner) processFile(path string) {
 	defer scanner.incFilesScanned()
+	defer scanner.wg.Done()
 
-	//fmt.Printf("scanning: %v\n", path)
-	if scanner.isFileUnchanged(path) {
-		scanner.wg.Done()
-	} else {
+	//log.Trace("process: %s", path)
+	if !scanner.isFileUnchanged(path) {
+		//log.Trace("unchanged: %s", path)
 		// process the file
 		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
-		item := FileEntry{path, length, lastMod, hex.EncodeToString(md5), time.Now().Unix()}
-		scanner.results <- item
+		item := filedb.FileEntry{path, length, lastMod, hex.EncodeToString(md5), time.Now().Unix()}
+		scanner.Db.StoreFileEntry(item)
 		scanner.incFilesUpdated()
 	}
+	//log.Trace("processed: %s", path)
+
 }
 
 func (scanner *Scanner) isFileUnchanged(path string) bool {
 
-	prev := ReadFileEntry(scanner.Db, path)
+	prev := scanner.Db.ReadFileEntry(path)
 
 	if prev == nil {
 		return false
@@ -77,19 +68,12 @@ func (scanner *Scanner) isFileUnchanged(path string) bool {
 	length, lastMod, _ := GetFileStats(path)
 
 	rc := prev.Length == length && prev.LastMod == lastMod
-	//	if !rc {
-	//		fmt.Printf("changed: %s\n", path)
-	//	}
 	return rc
 }
 
 func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
-	if f == nil {
-		return nil
-	}
-
-	if !f.IsDir() {
-		//fmt.Printf("visited: %s\n", path)
+	if f != nil && !f.IsDir() {
+		//log.Trace("visited: %s", path)
 
 		scanner.wg.Add(1)
 		scanner.incFilesFound()
@@ -99,28 +83,25 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 }
 
 func (scanner *Scanner) ScanFiles(dir string) {
-	// goroutine to save results
-	go scanner.saveResults()
-
 	// parallel scanning
 	filepath.Walk(dir, scanner.visit)
-	//fmt.Printf("all visited\n")
+	//log.Trace("all visited")
 
-	// wait until all scanned files are stored
+	// wait until all visited files are processed
 	scanner.wg.Wait()
-	//fmt.Printf("all stored\n")
+	//log.Trace("all processed")
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {
+	elapsed := time.Since(scanner.startTime)
 	if final {
-		fmt.Printf("found %v files, %v have changed\n", scanner.getFilesFound(), scanner.getFilesUpdated())
+		fmt.Printf("found %v files, %v have changed, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesUpdated(), elapsed)
 	} else {
-		elapsed := time.Now().Sub(scanner.startTime)
-		fmt.Printf("... t=%v, found %v files, processed %v\n", int64(elapsed/1000000000), scanner.getFilesFound(), scanner.getFilesScanned())
+		fmt.Printf("... found %v files, processed %v, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesScanned(), elapsed)
 	}
 }
 
-func MakeScanner(db *sql.DB) Scanner {
+func MakeScanner(db *filedb.FileDB) Scanner {
 	wg := new(sync.WaitGroup)
-	return Scanner{db, wg, make(chan FileEntry), 0, 0, 0, time.Now()}
+	return Scanner{db, wg, 0, 0, 0, time.Now()}
 }

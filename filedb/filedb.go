@@ -1,35 +1,42 @@
-package ddet
+package filedb
 
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
+	"sync"
 )
 
-func Fnord() int {
-	return 2
+type FileDB struct {
+	db *sql.DB
+	mx *sync.Mutex
 }
 
-type FileEntry struct {
-	Path     string
-	Length   int64
-	LastMod  int64
-	Md5      string
-	ScanTime int64
-}
-
-func InitDB(filepath string) *sql.DB {
-	db, err := sql.Open("sqlite3", filepath)
+func considerPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func InitDB(filepath string) *FileDB {
+	db, err := sql.Open("sqlite3", filepath)
+	considerPanic(err)
+
 	if db == nil {
 		panic("db nil")
 	}
-	return db
+	createTableIfNotExists(db)
+
+	mx := new(sync.Mutex)
+
+	filedb := FileDB{db, mx}
+	return &filedb
 }
 
-func CreateTable(db *sql.DB) {
-	// create table if not exists
+func (filedb *FileDB) Close() {
+	filedb.db.Close()
+}
+
+func createTableIfNotExists(db *sql.DB) {
 	sql_table := `
 	CREATE TABLE IF NOT EXISTS files(
 		Path TEXT NOT NULL PRIMARY KEY,
@@ -41,12 +48,17 @@ func CreateTable(db *sql.DB) {
 	`
 
 	_, err := db.Exec(sql_table)
-	if err != nil {
-		panic(err)
-	}
+	considerPanic(err)
 }
 
-func StoreFileEntry(db *sql.DB, items []FileEntry) {
+func (filedb *FileDB) StoreFileEntry(item FileEntry) {
+	filedb.StoreFileEntries([]FileEntry{item})
+}
+
+func (filedb *FileDB) StoreFileEntries(items []FileEntry) {
+	filedb.mx.Lock()
+	defer filedb.mx.Unlock()
+
 	sql_additem := `
 	INSERT OR REPLACE INTO files(
 		Path,
@@ -57,56 +69,52 @@ func StoreFileEntry(db *sql.DB, items []FileEntry) {
 	) values(?, ?, ?, ?, ?)
 	`
 
-	stmt, err := db.Prepare(sql_additem)
-	if err != nil {
-		panic(err)
-	}
+	stmt, err := filedb.db.Prepare(sql_additem)
+	considerPanic(err)
 	defer stmt.Close()
 
 	for _, item := range items {
 		_, err2 := stmt.Exec(item.Path, item.Length, item.LastMod, item.Md5, item.ScanTime)
-		if err2 != nil {
-			panic(err2)
-		}
+		considerPanic(err2)
 	}
 }
 
-func ReadAllFileEntries(db *sql.DB) []FileEntry {
+func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
+	filedb.mx.Lock()
+	defer filedb.mx.Unlock()
+
 	sql_readall := `
 	SELECT Path, Length, LastMod, Md5, ScanTime 
 	FROM files 
 	ORDER BY Path
 	`
 
-	rows, err := db.Query(sql_readall)
-	if err != nil {
-		panic(err)
-	}
+	rows, err := filedb.db.Query(sql_readall)
+	considerPanic(err)
 	defer rows.Close()
 
 	var result []FileEntry
 	for rows.Next() {
 		item := FileEntry{}
 		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
-		if err2 != nil {
-			panic(err2)
-		}
+		considerPanic(err2)
 		result = append(result, item)
 	}
 	return result
 }
 
-func ReadFileEntry(db *sql.DB, path string) *FileEntry {
+func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {
+	filedb.mx.Lock()
+	defer filedb.mx.Unlock()
 
 	sql_read := `
 	SELECT Path, Length, LastMod, Md5, ScanTime 
 	FROM files 
 	WHERE Path=?
-	ORDER BY Path
 	`
 
 	item := new(FileEntry)
-	err := db.QueryRow(sql_read, path).Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
+	err := filedb.db.QueryRow(sql_read, path).Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil

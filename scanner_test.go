@@ -1,12 +1,13 @@
 package ddet
 
 import (
+	"com.lostbearlabs/ddet/filedb"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
-func confirmItem(t *testing.T, it FileEntry, path string) {
+func confirmItem(t *testing.T, it filedb.FileEntry, path string) {
 	if it.Path != path {
 		t.Error("wrong path, expected=", path, ", got=", it.Path)
 	}
@@ -29,20 +30,19 @@ func TestScan(t *testing.T) {
 	ioutil.WriteFile(name3, []byte("constant text string 333"), 0644)
 
 	dbpath := dbdir + "/foo.db"
-	db := InitDB(dbpath)
+	db := filedb.InitDB(dbpath)
 	defer db.Close()
-	CreateTable(db)
 
 	scanner := MakeScanner(db)
 	scanner.ScanFiles(dir)
 
-	ReadAllFileEntriess := ReadAllFileEntries(db)
-	if len(ReadAllFileEntriess) != 3 {
-		t.Error("wrong length, expected=3, got=", len(ReadAllFileEntriess))
+	allFileEntriess := db.ReadAllFileEntries()
+	if len(allFileEntriess) != 3 {
+		t.Error("wrong length, expected=3, got=", len(allFileEntriess))
 	}
-	confirmItem(t, ReadAllFileEntriess[0], name1)
-	confirmItem(t, ReadAllFileEntriess[1], name2)
-	confirmItem(t, ReadAllFileEntriess[2], name3)
+	confirmItem(t, allFileEntriess[0], name1)
+	confirmItem(t, allFileEntriess[1], name2)
+	confirmItem(t, allFileEntriess[2], name3)
 
 }
 
@@ -58,17 +58,16 @@ func TestScanUnchangedFile(t *testing.T) {
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
 	dbpath := dbdir + "/foo.db"
-	db := InitDB(dbpath)
+	db := filedb.InitDB(dbpath)
 	defer db.Close()
-	CreateTable(db)
 
 	scanner := MakeScanner(db)
 	scanner.ScanFiles(dir)
-	read1 := ReadFileEntry(db, name1)
+	read1 := db.ReadFileEntry(name1)
 
 	scanner2 := MakeScanner(db)
 	scanner2.ScanFiles(dir)
-	read2 := ReadFileEntry(db, name1)
+	read2 := db.ReadFileEntry(name1)
 
 	if *read2 != *read1 {
 		t.Error("File should not have been scanned with no change, read1=", read1, ", read2=", read2)
@@ -88,14 +87,13 @@ func TestScanChangedFile(t *testing.T) {
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
 	dbpath := dbdir + "/foo.db"
-	db := InitDB(dbpath)
+	db := filedb.InitDB(dbpath)
 	defer db.Close()
-	CreateTable(db)
 
 	scanner := MakeScanner(db)
 	scanner.ScanFiles(dir)
 
-	read1 := ReadFileEntry(db, name1)
+	read1 := db.ReadFileEntry(name1)
 
 	// change length of file.  (We can't reliably test mod time to within 1-second
 	// unless we stick a sleep in here?)
@@ -103,7 +101,7 @@ func TestScanChangedFile(t *testing.T) {
 
 	scanner2 := MakeScanner(db)
 	scanner2.ScanFiles(dir)
-	read2 := ReadFileEntry(db, name1)
+	read2 := db.ReadFileEntry(name1)
 
 	if *read2 == *read1 {
 		t.Error("File should have been scanned after change, read1=", read1, ", read2=", read2)
