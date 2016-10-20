@@ -1,5 +1,7 @@
 package filedb
 
+// TODO: we should use a builder to create this.
+
 type FileEntry struct {
 	Path     string
 	Length   int64

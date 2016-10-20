@@ -15,18 +15,18 @@ func TestReadAllFileEntries(t *testing.T) {
 	db := InitDB(dbpath)
 	defer db.Close()
 
-	items := []FileEntry{
-		FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		FileEntry{"/foo3.txt", 3, 4, "XYZ3", 200},
+	items := []*FileEntry{
+		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
+		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 200},
 	}
 	db.StoreFileEntries(items)
 
 	allFileEntries := db.ReadAllFileEntries()
 	t.Log(allFileEntries)
 
-	items2 := []FileEntry{
-		FileEntry{"/foo2.txt", 2, 3, "AXB2", 300},
-		FileEntry{"/foo4.txt", 4, 5, "XYZ4", 400},
+	items2 := []*FileEntry{
+		&FileEntry{"/foo2.txt", 2, 3, "AXB2", 300},
+		&FileEntry{"/foo4.txt", 4, 5, "XYZ4", 400},
 	}
 	db.StoreFileEntries(items2)
 
@@ -37,7 +37,7 @@ func TestReadAllFileEntries(t *testing.T) {
 		t.Error("wrong number of items, got ", len(allFileEntriess2))
 	}
 
-	expected := items[0]
+	expected := *items[0]
 	probe := allFileEntriess2[0]
 	if expected != probe {
 		t.Error("bad value, expected=", expected, ", got=", probe)
@@ -54,12 +54,12 @@ func TestReadFileEntry(t *testing.T) {
 	db := InitDB(dbpath)
 	defer db.Close()
 
-	items := []FileEntry{
-		FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
-		FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+	items := []*FileEntry{
+		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
+		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
+		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
 	}
-	target := items[1]
+	target := *items[1]
 	db.StoreFileEntries(items)
 
 	fileEntry := db.ReadFileEntry(target.Path)
@@ -85,10 +85,10 @@ func TestReadFileEntryForUnknownPath(t *testing.T) {
 	db := InitDB(dbpath)
 	defer db.Close()
 
-	items := []FileEntry{
-		FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
-		FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+	items := []*FileEntry{
+		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
+		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
+		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
 	}
 	db.StoreFileEntries(items)
 

@@ -90,6 +90,10 @@ func (scanner *Scanner) ScanFiles(dir string) {
 	// wait until all visited files are processed
 	scanner.wg.Wait()
 	//log.Trace("all processed")
+	
+	// TODO: need to *DELETE* all files whose scan time is less than our start
+	// time, otherwise we'll get ghost dups from files that were previously
+	// deleted
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {

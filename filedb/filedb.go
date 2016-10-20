@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"sync"
+//	"fmt"
 )
 
 type FileDB struct {
@@ -52,10 +53,10 @@ func createTableIfNotExists(db *sql.DB) {
 }
 
 func (filedb *FileDB) StoreFileEntry(item FileEntry) {
-	filedb.StoreFileEntries([]FileEntry{item})
+	filedb.StoreFileEntries([]*FileEntry{&item})
 }
 
-func (filedb *FileDB) StoreFileEntries(items []FileEntry) {
+func (filedb *FileDB) StoreFileEntries(items []*FileEntry) {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
@@ -79,27 +80,41 @@ func (filedb *FileDB) StoreFileEntries(items []FileEntry) {
 	}
 }
 
-func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
+func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
 	sql_readall := `
 	SELECT Path, Length, LastMod, Md5, ScanTime 
 	FROM files 
+	WHERE Path LIKE ?
 	ORDER BY Path
 	`
 
-	rows, err := filedb.db.Query(sql_readall)
+	stmt, err := filedb.db.Prepare(sql_readall)
+	considerPanic(err)
+	defer stmt.Close()
+	
+	//fmt.Printf("path is: %s\n", path)
+	rows, err := stmt.Query(path + "%")
 	considerPanic(err)
 	defer rows.Close()
 
-	var result []FileEntry
 	for rows.Next() {
 		item := FileEntry{}
 		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
+		//fmt.Printf("row: %v\n", item)
 		considerPanic(err2)
-		result = append(result, item)
+		fn(item)
 	}
+}
+
+func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
+	var result []FileEntry
+	appendFn := func(e FileEntry) {
+		result = append(result, e)
+	}
+	filedb.ProcessAllFileEntries(appendFn, "/")
 	return result
 }
 
