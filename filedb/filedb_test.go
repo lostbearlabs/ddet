@@ -98,3 +98,34 @@ func TestReadFileEntryForUnknownPath(t *testing.T) {
 		t.Error("bad value, expected=nil, got=", fileEntry)
 	}
 }
+
+func TestDeleteOldEntries(t *testing.T) {
+	
+	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
+	defer os.Remove(dbdir)
+
+	dbpath := dbdir + "/foo.db"
+
+	db := InitDB(dbpath)
+	defer db.Close()
+
+	items := []*FileEntry{
+		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
+		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
+		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+	}
+	db.StoreFileEntries(items)
+	
+	db.DeleteOldEntries(200)
+	allEntries := db.ReadAllFileEntries()
+	if len(allEntries) != 2 {
+		t.Error("should have got 2, got", len(allEntries))
+	}
+	
+	
+	db.DeleteOldEntries(301)
+	allEntries = db.ReadAllFileEntries()
+	if len(allEntries) !=0  {
+		t.Error("should have got 0, got", len(allEntries))
+	}
+}

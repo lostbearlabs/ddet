@@ -83,6 +83,8 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 }
 
 func (scanner *Scanner) ScanFiles(dir string) {
+	scanTime := time.Now().Unix();
+	
 	// parallel scanning
 	filepath.Walk(dir, scanner.visit)
 	//log.Trace("all visited")
@@ -90,10 +92,8 @@ func (scanner *Scanner) ScanFiles(dir string) {
 	// wait until all visited files are processed
 	scanner.wg.Wait()
 	//log.Trace("all processed")
-	
-	// TODO: need to *DELETE* all files whose scan time is less than our start
-	// time, otherwise we'll get ghost dups from files that were previously
-	// deleted
+
+	scanner.Db.DeleteOldEntries(scanTime)	
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {

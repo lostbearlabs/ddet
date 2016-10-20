@@ -139,3 +139,21 @@ func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {
 		return item
 	}
 }
+
+func (filedb *FileDB) DeleteOldEntries(cutoff int64) {
+	filedb.mx.Lock()
+	defer filedb.mx.Unlock()
+	
+	sql_delete := `
+	DELETE
+	FROM files
+	WHERE ScanTime < ?
+	`
+	
+	stmt, err := filedb.db.Prepare(sql_delete)
+	considerPanic(err)
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cutoff)	
+	considerPanic(err)
+}
