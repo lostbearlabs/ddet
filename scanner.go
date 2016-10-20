@@ -3,13 +3,15 @@ package ddet
 import (
 	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
+	"github.com/juju/loggo"
 )
+
+var logger = loggo.GetLogger("scanner")
 
 type Scanner struct {
 	Db           *filedb.FileDB
@@ -83,8 +85,8 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 }
 
 func (scanner *Scanner) ScanFiles(dir string) {
-	scanTime := time.Now().Unix();
-	
+	scanTime := time.Now().Unix()
+
 	// parallel scanning
 	filepath.Walk(dir, scanner.visit)
 	//log.Trace("all visited")
@@ -93,15 +95,15 @@ func (scanner *Scanner) ScanFiles(dir string) {
 	scanner.wg.Wait()
 	//log.Trace("all processed")
 
-	scanner.Db.DeleteOldEntries(scanTime)	
+	scanner.Db.DeleteOldEntries(scanTime)
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {
 	elapsed := time.Since(scanner.startTime)
 	if final {
-		fmt.Printf("found %v files, %v have changed, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesUpdated(), elapsed)
+		logger.Infof("found %v files, %v have changed, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesUpdated(), elapsed)
 	} else {
-		fmt.Printf("... found %v files, processed %v, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesScanned(), elapsed)
+		logger.Infof("... found %v files, processed %v, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesScanned(), elapsed)
 	}
 }
 

@@ -4,15 +4,40 @@ import (
 	"com.lostbearlabs/ddet"
 	"com.lostbearlabs/ddet/dset"
 	"com.lostbearlabs/ddet/filedb"
+	"com.lostbearlabs/ddet/util"
 	"fmt"
+	"github.com/juju/loggo"
 	"os"
 	"time"
 )
 
+var logger loggo.Logger = loggo.GetLogger("ddet.main")
+
 func main() {
-	argsWithProg := os.Args
-	if len(argsWithProg) == 2 {
-		doScan(argsWithProg[1])
+	path := ""
+	numPaths := 0
+	verbose := false
+
+	for n, arg := range os.Args {
+		if n > 0 {
+			switch arg {
+			case "-v":
+				verbose = true
+			default:
+				path = arg
+				numPaths++
+			}
+		}
+	}
+
+	if verbose {
+		util.SetLogTrace()
+	} else {
+		util.SetLogInfo()
+	}
+
+	if numPaths == 1 {
+		doScan(path)
 	} else {
 		fmt.Printf("Usage:\n")
 		fmt.Printf("   ddet <folder>\n")
@@ -34,13 +59,14 @@ func doScan(path string) {
 
 	db := filedb.InitDB(dbpath)
 	defer db.Close()
-	
+
 	scanFiles(path, db)
 	analyzeDuplicates(db, path)
 }
 
 func scanFiles(path string, db *filedb.FileDB) {
 
+	logger.Tracef("BEGIN SCAN: %s", path)
 	scanner := ddet.MakeScanner(db)
 
 	ticker := time.NewTicker(time.Second * 1)
@@ -55,23 +81,25 @@ func scanFiles(path string, db *filedb.FileDB) {
 	ticker.Stop()
 
 	scanner.PrintSummary(true)
-	fmt.Printf("COMPLETED SCAN: %s\n", path)
+	logger.Infof("COMPLETED SCAN: %s\n", path)
 
 }
 
 func analyzeDuplicates(db *filedb.FileDB, path string) {
-	
+
+	logger.Tracef("BEGIN ANALYSIS")
 	start := time.Now()
 	ks := dset.New()
 	ks.AddAll(db, path)
 
 	dupKeys := ks.GetDuplicateKeys()
-	fmt.Printf("COMPLETED ANALYSIS, elapsed=%v\n", time.Since(start))
-	
+	logger.Infof("COMPLETED ANALYSIS, elapsed=%v\n", time.Since(start))
+
 	if dupKeys == nil || len(dupKeys) == 0 {
-		fmt.Printf("NO DUPLICATES FOUND\n")
+		logger.Infof("NO DUPLICATES FOUND\n")
 		return
 	}
+	logger.Infof("found %d groups of duplicate files", len(dupKeys))
 
 	for _, key := range dupKeys {
 		entries := ks.GetFileEntries(key)
@@ -80,5 +108,5 @@ func analyzeDuplicates(db *filedb.FileDB, path string) {
 			fmt.Printf("   %s\n", entry.Path)
 		}
 	}
-	
+
 }

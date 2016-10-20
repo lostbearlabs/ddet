@@ -2,11 +2,11 @@ package dset
 
 import (
 	"com.lostbearlabs/ddet/filedb"
-	//"log"
+	"github.com/juju/loggo"
 	"sort"
 )
 
-// TODO: I would like to have some kind of true TRACE logging
+var logger = loggo.GetLogger("dset")
 
 // The key used to compare files.  Files with the same key are
 // treated as identical.
@@ -50,14 +50,14 @@ func (k *KnownFileSet) Add(e filedb.FileEntry) {
 		entries := make(map[string]*filedb.FileEntry)
 		l = &FilesWithSameKey{key, entries}
 		k.mp[key] = l
-		//log.Printf("created bucket for %v", key)
+		logger.Tracef("created bucket for %v", key)
 	}
 	if l.entries[e.Path] == nil {
-		//tag := ""
-		//if len(l.entries)>0 {
-		//    tag = "  !!DUPLICATE!!  "
-		//}
-		//log.Printf("key=%v, adding path %v%s\n", key, e.Path, tag)
+		tag := ""
+		if len(l.entries)>0 {
+		    tag = "  !!DUPLICATE!!  "
+		}
+		logger.Tracef("key=%v, adding path %v%s\n", key, e.Path, tag)
 		l.entries[e.Path] = &e
 	}
 }
@@ -70,7 +70,7 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 			keys = append(keys, x)
 		}
 	}
-	//log.Printf("duplicate keys: %v", keys)
+	logger.Tracef("duplicate keys: %v", keys)
 	return keys
 }
 
@@ -81,14 +81,14 @@ func (k *KnownFileSet) GetFileEntries(key KnownFileKey) []*filedb.FileEntry {
 	for path, _ := range list.entries {
 		paths = append(paths, path)
 	}
-	//log.Printf("paths: %v\n", paths)
+	logger.Tracef("paths: %v\n", paths)
 	sort.Strings(paths)
-	//log.Printf("sorted paths: %s\n", paths)
+	logger.Tracef("sorted paths: %s\n", paths)
 
 	ar := make([]*filedb.FileEntry, 0)
 	for _, path := range paths {
 		ar = append(ar, list.entries[path])
 	}
-	//log.Printf("ar: %v\n", ar)
+	logger.Tracef("ar: %v\n", ar)
 	return ar
 }

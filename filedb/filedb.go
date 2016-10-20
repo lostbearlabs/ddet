@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"sync"
-//	"fmt"
+	//	"fmt"
 )
 
 type FileDB struct {
@@ -94,7 +94,7 @@ func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
 	stmt, err := filedb.db.Prepare(sql_readall)
 	considerPanic(err)
 	defer stmt.Close()
-	
+
 	//fmt.Printf("path is: %s\n", path)
 	rows, err := stmt.Query(path + "%")
 	considerPanic(err)
@@ -143,17 +143,17 @@ func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {
 func (filedb *FileDB) DeleteOldEntries(cutoff int64) {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
-	
+
 	sql_delete := `
 	DELETE
 	FROM files
 	WHERE ScanTime < ?
 	`
-	
+
 	stmt, err := filedb.db.Prepare(sql_delete)
 	considerPanic(err)
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cutoff)	
+	_, err = stmt.Exec(cutoff)
 	considerPanic(err)
 }
