@@ -1,8 +1,8 @@
 #! /bin/bash
-set -E
+set -e
 echo 'building...'
 go build
 echo 'running...'
-./app scan /home/ubuntu/workspace
+./app /home/ubuntu/workspace
  
 
