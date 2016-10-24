@@ -95,7 +95,7 @@ func (scanner *Scanner) ScanFiles(dir string) {
 	scanner.wg.Wait()
 	//log.Trace("all processed")
 
-	scanner.Db.DeleteOldEntries(scanTime)
+	scanner.Db.DeleteOldEntries(dir, scanTime)
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {

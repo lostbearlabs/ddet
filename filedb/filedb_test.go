@@ -91,15 +91,34 @@ func TestDeleteOldEntries(t *testing.T) {
 	}
 	db.StoreFileEntries(items)
 
-	db.DeleteOldEntries(200)
+	db.DeleteOldEntries("/", 200)
 	allEntries := db.ReadAllFileEntries()
 	if len(allEntries) != 2 {
 		t.Error("should have got 2, got", len(allEntries))
 	}
 
-	db.DeleteOldEntries(301)
+	db.DeleteOldEntries("/", 301)
 	allEntries = db.ReadAllFileEntries()
 	if len(allEntries) != 0 {
 		t.Error("should have got 0, got", len(allEntries))
+	}
+}
+
+func TestDeletePathPrefix(t *testing.T) {
+	
+	db := NewTempDB() 
+	defer db.Close()
+
+	items := []*FileEntry{
+		&FileEntry{"/a/foo1.txt", 1, 2, "AXB1", 100},
+		&FileEntry{"/b/foo2.txt", 5, 6, "PQR1", 200},
+		&FileEntry{"/a/foo3.txt", 3, 4, "XYZ3", 300},
+	}
+	db.StoreFileEntries(items)
+
+	db.DeleteOldEntries("/a", 500)
+	allEntries := db.ReadAllFileEntries()
+	if len(allEntries) != 1 {
+		t.Error("should have got 1, got", len(allEntries))
 	}
 }
