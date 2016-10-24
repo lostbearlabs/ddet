@@ -15,9 +15,6 @@ func confirmItem(t *testing.T, it filedb.FileEntry, path string) {
 }
 
 func TestScan(t *testing.T) {
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
 	dir, _ := ioutil.TempDir(os.TempDir(), "data")
 	defer os.Remove(dir)
 
@@ -29,8 +26,7 @@ func TestScan(t *testing.T) {
 	ioutil.WriteFile(name2, []byte("constant text string 22"), 0644)
 	ioutil.WriteFile(name3, []byte("constant text string 333"), 0644)
 
-	dbpath := dbdir + "/foo.db"
-	db := filedb.InitDB(dbpath)
+	db := filedb.NewTempDB() 
 	defer db.Close()
 
 	scanner := MakeScanner(db)
@@ -48,17 +44,13 @@ func TestScan(t *testing.T) {
 
 func TestScanUnchangedFile(t *testing.T) {
 
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
 	dir, _ := ioutil.TempDir(os.TempDir(), "data")
 	defer os.Remove(dir)
 
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	dbpath := dbdir + "/foo.db"
-	db := filedb.InitDB(dbpath)
+	db := filedb.NewTempDB() 
 	defer db.Close()
 
 	scanner := MakeScanner(db)
@@ -77,17 +69,13 @@ func TestScanUnchangedFile(t *testing.T) {
 
 func TestScanChangedFile(t *testing.T) {
 
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
 	dir, _ := ioutil.TempDir(os.TempDir(), "data")
 	defer os.Remove(dir)
 
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	dbpath := dbdir + "/foo.db"
-	db := filedb.InitDB(dbpath)
+	db := filedb.NewTempDB() 
 	defer db.Close()
 
 	scanner := MakeScanner(db)

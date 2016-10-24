@@ -2,8 +2,6 @@ package dset
 
 import (
 	"com.lostbearlabs/ddet/filedb"
-	"io/ioutil"
-	"os"
 	"testing"
 )
 
@@ -18,15 +16,8 @@ func TestEmptyReturnsNone(t *testing.T) {
 	}
 }
 
-// TODO: need some kind of test database so we don't duplicate this dir/path/InitDB
-// stuff all over the place.
 func TestSingleDupReturnsIt(t *testing.T) {
-
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-	db := filedb.InitDB(dbpath)
+	db := filedb.NewTempDB()
 	defer db.Close()
 
 	items := []*filedb.FileEntry{
@@ -58,12 +49,7 @@ func TestSingleDupReturnsIt(t *testing.T) {
 }
 
 func NonDupNotReturned(t *testing.T) {
-
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-	db := filedb.InitDB(dbpath)
+	db := filedb.NewTempDB()
 	defer db.Close()
 
 	items := []*filedb.FileEntry{

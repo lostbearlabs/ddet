@@ -4,12 +4,15 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"sync"
-	//	"fmt"
+	"os"
+	"io/ioutil"
 )
 
 type FileDB struct {
 	db *sql.DB
 	mx *sync.Mutex
+	tempDir string 
+	tempFile string
 }
 
 func considerPanic(err error) {
@@ -29,12 +32,31 @@ func InitDB(filepath string) *FileDB {
 
 	mx := new(sync.Mutex)
 
-	filedb := FileDB{db, mx}
+	filedb := FileDB{db, mx, "", ""}
 	return &filedb
+}
+
+func NewTempDB() * FileDB {
+	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
+	dbpath := dbdir + "/foo.db"
+
+	f := InitDB(dbpath)
+	f.tempDir = dbdir
+	f.tempFile = dbpath
+	return f
 }
 
 func (filedb *FileDB) Close() {
 	filedb.db.Close()
+
+	if (filedb.tempFile!="") {
+		err := os.Remove(filedb.tempFile)
+		considerPanic(err)
+	}	
+	if (filedb.tempDir!="") {
+		err := os.Remove(filedb.tempDir)
+		considerPanic(err)
+	}
 }
 
 func createTableIfNotExists(db *sql.DB) {

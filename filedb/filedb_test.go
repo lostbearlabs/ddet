@@ -1,18 +1,11 @@
 package filedb
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 )
 
 func TestReadAllFileEntries(t *testing.T) {
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-
-	db := InitDB(dbpath)
+	db := NewTempDB() 
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -45,13 +38,7 @@ func TestReadAllFileEntries(t *testing.T) {
 }
 
 func TestReadFileEntry(t *testing.T) {
-
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-
-	db := InitDB(dbpath)
+	db := NewTempDB() 
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -76,13 +63,7 @@ func TestReadFileEntry(t *testing.T) {
 }
 
 func TestReadFileEntryForUnknownPath(t *testing.T) {
-
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-
-	db := InitDB(dbpath)
+	db := NewTempDB() 
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -100,13 +81,7 @@ func TestReadFileEntryForUnknownPath(t *testing.T) {
 }
 
 func TestDeleteOldEntries(t *testing.T) {
-
-	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
-	defer os.Remove(dbdir)
-
-	dbpath := dbdir + "/foo.db"
-
-	db := InitDB(dbpath)
+	db := NewTempDB() 
 	defer db.Close()
 
 	items := []*FileEntry{
