@@ -1,4 +1,4 @@
-package ddet
+package scanner 
 
 import (
 	"crypto/md5"

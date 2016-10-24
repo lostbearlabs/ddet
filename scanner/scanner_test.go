@@ -1,4 +1,4 @@
-package ddet
+package scanner 
 
 import (
 	"com.lostbearlabs/ddet/filedb"

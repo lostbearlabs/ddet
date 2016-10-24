@@ -3,6 +3,6 @@ set -e
 echo 'building...'
 go build
 echo 'running...'
-./app /home/ubuntu/workspace
+./ddet /home/ubuntu/workspace
  
 

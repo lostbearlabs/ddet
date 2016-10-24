@@ -1,10 +1,10 @@
 package main
 
 import (
-	"com.lostbearlabs/ddet"
 	"com.lostbearlabs/ddet/dset"
 	"com.lostbearlabs/ddet/filedb"
 	"com.lostbearlabs/ddet/util"
+	"com.lostbearlabs/ddet/scanner"
 	"fmt"
 	"github.com/juju/loggo"
 	"os"
@@ -67,7 +67,7 @@ func doScan(path string) {
 func scanFiles(path string, db *filedb.FileDB) {
 
 	logger.Tracef("BEGIN SCAN: %s", path)
-	scanner := ddet.MakeScanner(db)
+	scanner := scanner.MakeScanner(db)
 
 	ticker := time.NewTicker(time.Second * 1)
 	go func() {
