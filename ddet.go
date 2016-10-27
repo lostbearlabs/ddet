@@ -3,8 +3,8 @@ package main
 import (
 	"com.lostbearlabs/ddet/dset"
 	"com.lostbearlabs/ddet/filedb"
-	"com.lostbearlabs/ddet/util"
 	"com.lostbearlabs/ddet/scanner"
+	"com.lostbearlabs/ddet/util"
 	"fmt"
 	"github.com/juju/loggo"
 	"os"

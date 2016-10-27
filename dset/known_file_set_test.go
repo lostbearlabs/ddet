@@ -21,8 +21,8 @@ func TestSingleDupReturnsIt(t *testing.T) {
 	defer db.Close()
 
 	items := []*filedb.FileEntry{
-		&filedb.FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&filedb.FileEntry{"/foo3.txt", 1, 4, "AXB1", 300},
+		filedb.NewTestFileEntry().SetPath("/foo1.txt"),
+		filedb.NewTestFileEntry().SetPath("/foo3.txt"),
 	}
 	db.StoreFileEntries(items)
 
@@ -53,8 +53,8 @@ func NonDupNotReturned(t *testing.T) {
 	defer db.Close()
 
 	items := []*filedb.FileEntry{
-		&filedb.FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&filedb.FileEntry{"/foo3.txt", 1, 4, "AXB2", 300},
+		filedb.NewTestFileEntry().SetPath("/foo1.txt").SetMd5("ABX1"),
+		filedb.NewTestFileEntry().SetPath("/foo3.txt").SetMd5("ABX2"),
 	}
 	db.StoreFileEntries(items)
 

@@ -5,12 +5,12 @@ import (
 )
 
 func TestReadAllFileEntries(t *testing.T) {
-	db := NewTempDB() 
+	db := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
-		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 200},
+		NewTestFileEntry().SetPath("/foo1.txt"),
+		NewTestFileEntry().SetPath("/foo3.txt"),
 	}
 	db.StoreFileEntries(items)
 
@@ -18,8 +18,8 @@ func TestReadAllFileEntries(t *testing.T) {
 	t.Log(allFileEntries)
 
 	items2 := []*FileEntry{
-		&FileEntry{"/foo2.txt", 2, 3, "AXB2", 300},
-		&FileEntry{"/foo4.txt", 4, 5, "XYZ4", 400},
+		NewTestFileEntry().SetPath("/foo2.txt"),
+		NewTestFileEntry().SetPath("/foo4.txt"),
 	}
 	db.StoreFileEntries(items2)
 
@@ -38,13 +38,13 @@ func TestReadAllFileEntries(t *testing.T) {
 }
 
 func TestReadFileEntry(t *testing.T) {
-	db := NewTempDB() 
+	db := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
-		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
-		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+		NewTestFileEntry().SetPath("/foo1.txt"),
+		NewTestFileEntry().SetPath("/foo2.txt").SetLastMod(1).SetLength(2).SetScanTime(3).SetMd5("PQR1"),
+		NewTestFileEntry().SetPath("/foo3.txt"),
 	}
 	target := *items[1]
 	db.StoreFileEntries(items)
@@ -63,13 +63,13 @@ func TestReadFileEntry(t *testing.T) {
 }
 
 func TestReadFileEntryForUnknownPath(t *testing.T) {
-	db := NewTempDB() 
+	db := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
-		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
-		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+		NewTestFileEntry().SetPath("/foo1.txt"),
+		NewTestFileEntry().SetPath("/foo2.txt"),
+		NewTestFileEntry().SetPath("/foo3.txt"),
 	}
 	db.StoreFileEntries(items)
 
@@ -81,13 +81,13 @@ func TestReadFileEntryForUnknownPath(t *testing.T) {
 }
 
 func TestDeleteOldEntries(t *testing.T) {
-	db := NewTempDB() 
+	db := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
-		&FileEntry{"/foo1.txt", 1, 2, "AXB1", 100},
-		&FileEntry{"/foo2.txt", 5, 6, "PQR1", 200},
-		&FileEntry{"/foo3.txt", 3, 4, "XYZ3", 300},
+		NewTestFileEntry().SetPath("/foo1.txt").SetScanTime(100),
+		NewTestFileEntry().SetPath("/foo2.txt").SetScanTime(200),
+		NewTestFileEntry().SetPath("/foo3.txt").SetScanTime(300),
 	}
 	db.StoreFileEntries(items)
 
@@ -105,14 +105,14 @@ func TestDeleteOldEntries(t *testing.T) {
 }
 
 func TestDeletePathPrefix(t *testing.T) {
-	
-	db := NewTempDB() 
+
+	db := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
-		&FileEntry{"/a/foo1.txt", 1, 2, "AXB1", 100},
-		&FileEntry{"/b/foo2.txt", 5, 6, "PQR1", 200},
-		&FileEntry{"/a/foo3.txt", 3, 4, "XYZ3", 300},
+		NewTestFileEntry().SetPath("/a/foo1.txt").SetScanTime(100),
+		NewTestFileEntry().SetPath("/b/foo2.txt").SetScanTime(200),
+		NewTestFileEntry().SetPath("/a/foo3.txt").SetScanTime(300),
 	}
 	db.StoreFileEntries(items)
 

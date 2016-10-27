@@ -1,4 +1,4 @@
-package scanner 
+package scanner
 
 import (
 	"com.lostbearlabs/ddet/filedb"
@@ -26,7 +26,7 @@ func TestScan(t *testing.T) {
 	ioutil.WriteFile(name2, []byte("constant text string 22"), 0644)
 	ioutil.WriteFile(name3, []byte("constant text string 333"), 0644)
 
-	db := filedb.NewTempDB() 
+	db := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)
@@ -50,7 +50,7 @@ func TestScanUnchangedFile(t *testing.T) {
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	db := filedb.NewTempDB() 
+	db := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)
@@ -75,7 +75,7 @@ func TestScanChangedFile(t *testing.T) {
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	db := filedb.NewTempDB() 
+	db := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)

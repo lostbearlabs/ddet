@@ -3,15 +3,15 @@ package filedb
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"sync"
-	"os"
 	"io/ioutil"
+	"os"
+	"sync"
 )
 
 type FileDB struct {
-	db *sql.DB
-	mx *sync.Mutex
-	tempDir string 
+	db       *sql.DB
+	mx       *sync.Mutex
+	tempDir  string
 	tempFile string
 }
 
@@ -36,7 +36,7 @@ func InitDB(filepath string) *FileDB {
 	return &filedb
 }
 
-func NewTempDB() * FileDB {
+func NewTempDB() *FileDB {
 	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
 	dbpath := dbdir + "/foo.db"
 
@@ -49,11 +49,11 @@ func NewTempDB() * FileDB {
 func (filedb *FileDB) Close() {
 	filedb.db.Close()
 
-	if (filedb.tempFile!="") {
+	if filedb.tempFile != "" {
 		err := os.Remove(filedb.tempFile)
 		considerPanic(err)
-	}	
-	if (filedb.tempDir!="") {
+	}
+	if filedb.tempDir != "" {
 		err := os.Remove(filedb.tempDir)
 		considerPanic(err)
 	}
@@ -123,11 +123,11 @@ func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
 	defer rows.Close()
 
 	for rows.Next() {
-		item := FileEntry{}
+		item := NewBlankFileEntry()
 		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
 		//fmt.Printf("row: %v\n", item)
 		considerPanic(err2)
-		fn(item)
+		fn(*item)
 	}
 }
 
@@ -177,6 +177,6 @@ func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) {
 	considerPanic(err)
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cutoff, path + "%")
+	_, err = stmt.Exec(cutoff, path+"%")
 	considerPanic(err)
 }

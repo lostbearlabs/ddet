@@ -54,8 +54,8 @@ func (k *KnownFileSet) Add(e filedb.FileEntry) {
 	}
 	if l.entries[e.Path] == nil {
 		tag := ""
-		if len(l.entries)>0 {
-		    tag = "  !!DUPLICATE!!  "
+		if len(l.entries) > 0 {
+			tag = "  !!DUPLICATE!!  "
 		}
 		logger.Tracef("key=%v, adding path %v%s\n", key, e.Path, tag)
 		l.entries[e.Path] = &e

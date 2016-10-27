@@ -1,14 +1,14 @@
-package scanner 
+package scanner
 
 import (
 	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
+	"github.com/juju/loggo"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/juju/loggo"
 )
 
 var logger = loggo.GetLogger("scanner")
@@ -51,8 +51,13 @@ func (scanner *Scanner) processFile(path string) {
 		// process the file
 		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
-		item := filedb.FileEntry{path, length, lastMod, hex.EncodeToString(md5), time.Now().Unix()}
-		scanner.Db.StoreFileEntry(item)
+		item := filedb.NewBlankFileEntry().
+			SetPath(path).
+			SetLength(length).
+			SetLastMod(lastMod).
+			SetMd5(hex.EncodeToString(md5)).
+			SetScanTime(time.Now().Unix())
+		scanner.Db.StoreFileEntry(*item)
 		scanner.incFilesUpdated()
 	}
 	//log.Trace("processed: %s", path)
