@@ -96,10 +96,10 @@ func analyzeDuplicates(db *filedb.FileDB, path string) {
 	logger.Infof("COMPLETED ANALYSIS, elapsed=%v\n", time.Since(start))
 
 	if dupKeys == nil || len(dupKeys) == 0 {
-		logger.Infof("NO DUPLICATES FOUND\n")
+		logger.Infof("NO DUPLICATES FOUND, %d files total\n", ks.GetNumFiles())
 		return
 	}
-	logger.Infof("found %d groups of duplicate files", len(dupKeys))
+	logger.Infof("found %d groups of duplicate files, %d files total", len(dupKeys), ks.GetNumFiles())
 
 	for _, key := range dupKeys {
 		entries := ks.GetFileEntries(key)

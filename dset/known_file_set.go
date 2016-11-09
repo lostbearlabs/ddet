@@ -30,11 +30,16 @@ type FilesWithSameKey struct {
 // i.e. sets of multiple files with the same key.
 type KnownFileSet struct {
 	mp map[KnownFileKey]*FilesWithSameKey
+	numFiles int64
 }
 
 func New() *KnownFileSet {
 	mp := make(map[KnownFileKey]*FilesWithSameKey)
-	return &KnownFileSet{mp}
+	return &KnownFileSet{mp, 0}
+}
+
+func (k *KnownFileSet) GetNumFiles() int64 {
+	return k.numFiles
 }
 
 // TODO: if we process a zillion files, the KnownFileSet will get full of single-file entries.
@@ -59,6 +64,7 @@ func (k *KnownFileSet) Add(e filedb.FileEntry) {
 		}
 		logger.Tracef("key=%v, adding path %v%s\n", key, e.Path, tag)
 		l.entries[e.Path] = &e
+		k.numFiles ++
 	}
 }
 

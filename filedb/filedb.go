@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"github.com/juju/loggo"
 )
+
+var logger = loggo.GetLogger("scanner")
 
 type FileDB struct {
 	db       *sql.DB
@@ -162,7 +165,7 @@ func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {
 	}
 }
 
-func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) {
+func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) uint64 {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
@@ -177,6 +180,9 @@ func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) {
 	considerPanic(err)
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cutoff, path+"%")
+	result, err := stmt.Exec(cutoff, path+"%")
 	considerPanic(err)
+	rows, err := result.RowsAffected()
+	considerPanic(err)
+	return uint64(rows)
 }
