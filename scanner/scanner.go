@@ -20,7 +20,7 @@ type Scanner struct {
 	filesScanned uint64
 	filesUpdated uint64
 	filesDeleted uint64
-	filesAdded	 uint64
+	filesAdded   uint64
 }
 
 func (scanner *Scanner) incFilesFound() {
@@ -60,7 +60,7 @@ func (scanner *Scanner) processFile(path string) {
 	defer scanner.wg.Done()
 
 	//log.Trace("process: %s", path)
-	changed,prev := scanner.isFileChanged(path)
+	changed, prev := scanner.isFileChanged(path)
 
 	if changed {
 		// file has been added or updated ... recompute its MD5
@@ -74,7 +74,7 @@ func (scanner *Scanner) processFile(path string) {
 			SetMd5(hex.EncodeToString(md5)).
 			SetScanTime(time.Now().Unix())
 		scanner.Db.StoreFileEntry(*item)
-		if prev==nil {
+		if prev == nil {
 			scanner.incFilesAdded(1)
 		} else {
 			scanner.incFilesUpdated()
@@ -135,7 +135,7 @@ func (scanner *Scanner) PrintSummary(final bool) {
 		logger.Infof("found %v files, %v added, %v changed, %v deleted\n", scanner.getFilesFound(), scanner.getFilesAdded(),
 			scanner.getFilesUpdated(), scanner.getFilesDeleted())
 	} else {
-		logger.Infof("... processed %v/%v files\n", scanner.getFilesScanned(), scanner.getFilesFound() )
+		logger.Infof("... processed %v/%v files\n", scanner.getFilesScanned(), scanner.getFilesFound())
 	}
 }
 

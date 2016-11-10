@@ -2,11 +2,11 @@ package filedb
 
 import (
 	"database/sql"
+	"github.com/juju/loggo"
 	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"os"
 	"sync"
-	"github.com/juju/loggo"
 )
 
 var logger = loggo.GetLogger("scanner")

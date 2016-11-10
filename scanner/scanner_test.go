@@ -7,11 +7,13 @@ import (
 	"testing"
 )
 
-func confirmItem(t *testing.T, it filedb.FileEntry, path string) {
+func confirmItem(t *testing.T, it filedb.FileEntry, path string, length int64) {
 	if it.Path != path {
 		t.Error("wrong path, expected=", path, ", got=", it.Path)
 	}
-	// TODO: other fields
+	if it.Length != length {
+		t.Error("wrong length, expected=", length, ", got=", it.Length)
+	}
 }
 
 func TestScan(t *testing.T) {
@@ -36,9 +38,9 @@ func TestScan(t *testing.T) {
 	if len(allFileEntriess) != 3 {
 		t.Error("wrong length, expected=3, got=", len(allFileEntriess))
 	}
-	confirmItem(t, allFileEntriess[0], name1)
-	confirmItem(t, allFileEntriess[1], name2)
-	confirmItem(t, allFileEntriess[2], name3)
+	confirmItem(t, allFileEntriess[0], name1, 22)
+	confirmItem(t, allFileEntriess[1], name2, 23)
+	confirmItem(t, allFileEntriess[2], name3, 24)
 
 }
 

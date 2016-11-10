@@ -105,8 +105,8 @@ func analyzeDuplicates(db *filedb.FileDB, path string) {
 		entries := ks.GetFileEntries(key)
 		fmt.Printf("Files with MD5 %s and length %d:\n", entries[0].Md5, entries[0].Length)
 		for i, entry := range entries {
-			if (i>5) {
-				fmt.Printf( "   ... and %d more\n", len(entries)-i)
+			if i > 5 {
+				fmt.Printf("   ... and %d more\n", len(entries)-i)
 				break
 			}
 			fmt.Printf("   %s\n", entry.Path)

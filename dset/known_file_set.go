@@ -19,10 +19,11 @@ type KnownFileKey struct {
 // the length field first, then the md5
 type ByLength []KnownFileKey
 
-func (a ByLength) Len() int           { return len(a) }
-func (a ByLength) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByLength) Less(i, j int) bool { return (a[i].length < a[j].length) || ((a[i].length==a[j].length) && (a[i].md5 < a[j].md5))}
-
+func (a ByLength) Len() int      { return len(a) }
+func (a ByLength) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByLength) Less(i, j int) bool {
+	return (a[i].length < a[j].length) || ((a[i].length == a[j].length) && (a[i].md5 < a[j].md5))
+}
 
 // A set of files with the same key.
 type FilesWithSameKey struct {
@@ -38,7 +39,7 @@ type FilesWithSameKey struct {
 // A set of files, from which we can extract any duplicate files,
 // i.e. sets of multiple files with the same key.
 type KnownFileSet struct {
-	mp map[KnownFileKey]*FilesWithSameKey
+	mp       map[KnownFileKey]*FilesWithSameKey
 	numFiles int64
 }
 
@@ -73,7 +74,7 @@ func (k *KnownFileSet) Add(e filedb.FileEntry) {
 		}
 		logger.Tracef("key=%v, adding path %v%s\n", key, e.Path, tag)
 		l.entries[e.Path] = &e
-		k.numFiles ++
+		k.numFiles++
 	}
 }
 
@@ -85,9 +86,9 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 			keys = append(keys, x)
 		}
 	}
-	
+
 	sort.Sort(ByLength(keys))
-	
+
 	logger.Tracef("duplicate keys: %v", keys)
 	return keys
 }
