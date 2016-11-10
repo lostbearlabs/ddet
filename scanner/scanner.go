@@ -20,7 +20,7 @@ type Scanner struct {
 	filesScanned uint64
 	filesUpdated uint64
 	filesDeleted uint64
-	startTime    time.Time
+	filesAdded	 uint64
 }
 
 func (scanner *Scanner) incFilesFound() {
@@ -32,6 +32,13 @@ func (scanner *Scanner) incFilesScanned() {
 func (scanner *Scanner) incFilesUpdated() {
 	atomic.AddUint64(&scanner.filesUpdated, 1)
 }
+func (scanner *Scanner) incFilesDeleted(num uint64) {
+	atomic.AddUint64(&scanner.filesDeleted, num)
+}
+func (scanner *Scanner) incFilesAdded(num uint64) {
+	atomic.AddUint64(&scanner.filesAdded, num)
+}
+
 func (scanner *Scanner) getFilesScanned() uint64 {
 	return atomic.LoadUint64(&scanner.filesScanned)
 }
@@ -41,11 +48,11 @@ func (scanner *Scanner) getFilesUpdated() uint64 {
 func (scanner *Scanner) getFilesFound() uint64 {
 	return atomic.LoadUint64(&scanner.filesFound)
 }
-func (scanner *Scanner) incFilesDeleted(num uint64) {
-	atomic.AddUint64(&scanner.filesDeleted, num)
-}
 func (scanner *Scanner) getFilesDeleted() uint64 {
 	return atomic.LoadUint64(&scanner.filesDeleted)
+}
+func (scanner *Scanner) getFilesAdded() uint64 {
+	return atomic.LoadUint64(&scanner.filesAdded)
 }
 
 func (scanner *Scanner) processFile(path string) {
@@ -56,8 +63,8 @@ func (scanner *Scanner) processFile(path string) {
 	changed,prev := scanner.isFileChanged(path)
 
 	if changed {
-		// file has been updated ... recompute its MD5
-		logger.Infof(" ... changed since last scan: %s", path)
+		// file has been added or updated ... recompute its MD5
+		logger.Tracef(" ... changed since last scan: %s", path)
 		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
 		item := filedb.NewBlankFileEntry().
@@ -67,7 +74,11 @@ func (scanner *Scanner) processFile(path string) {
 			SetMd5(hex.EncodeToString(md5)).
 			SetScanTime(time.Now().Unix())
 		scanner.Db.StoreFileEntry(*item)
-		scanner.incFilesUpdated()
+		if prev==nil {
+			scanner.incFilesAdded(1)
+		} else {
+			scanner.incFilesUpdated()
+		}
 	} else {
 		// file has not been updated ... only need to get our current
 		// scan time into the database
@@ -105,7 +116,7 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 
 func (scanner *Scanner) ScanFiles(dir string) {
 	scanTime := time.Now().Unix()
-	logger.Infof("Scanning folder %v, scan time %d", dir, scanTime)
+	logger.Infof("Scanning folder %v", dir)
 
 	// parallel scanning
 	filepath.Walk(dir, scanner.visit)
@@ -120,15 +131,15 @@ func (scanner *Scanner) ScanFiles(dir string) {
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {
-	elapsed := time.Since(scanner.startTime)
 	if final {
-		logger.Infof("found %v files, %v changed, %v deleted, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesUpdated(), scanner.getFilesDeleted(), elapsed)
+		logger.Infof("found %v files, %v added, %v changed, %v deleted\n", scanner.getFilesFound(), scanner.getFilesAdded(),
+			scanner.getFilesUpdated(), scanner.getFilesDeleted())
 	} else {
-		logger.Infof("... found %v files, processed %v, elapsed=%v\n", scanner.getFilesFound(), scanner.getFilesScanned(), elapsed)
+		logger.Infof("... processed %v/%v files\n", scanner.getFilesScanned(), scanner.getFilesFound() )
 	}
 }
 
 func MakeScanner(db *filedb.FileDB) Scanner {
 	wg := new(sync.WaitGroup)
-	return Scanner{db, wg, 0, 0, 0, 0, time.Now()}
+	return Scanner{db, wg, 0, 0, 0, 0, 0}
 }

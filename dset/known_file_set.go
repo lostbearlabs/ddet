@@ -15,6 +15,15 @@ type KnownFileKey struct {
 	length int64
 }
 
+// ByLength implements sort.Interface for []KnownFileKey based on
+// the length field first, then the md5
+type ByLength []KnownFileKey
+
+func (a ByLength) Len() int           { return len(a) }
+func (a ByLength) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByLength) Less(i, j int) bool { return (a[i].length < a[j].length) || ((a[i].length==a[j].length) && (a[i].md5 < a[j].md5))}
+
+
 // A set of files with the same key.
 type FilesWithSameKey struct {
 	key KnownFileKey
@@ -76,6 +85,9 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 			keys = append(keys, x)
 		}
 	}
+	
+	sort.Sort(ByLength(keys))
+	
 	logger.Tracef("duplicate keys: %v", keys)
 	return keys
 }
