@@ -108,8 +108,16 @@ func (scanner *Scanner) isFileChanged(path string) (bool, *filedb.FileEntry) {
 	return rc, prev
 }
 
+func isRegularFile(f os.FileInfo) bool {
+	if f == nil {
+		return false
+	}
+
+	return (f.Mode() & os.ModeType) == 0
+}
+
 func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
-	if f != nil && !f.IsDir() {
+	if isRegularFile(f) {
 		//log.Trace("visited: %s", path)
 
 		scanner.wg.Add(1)
