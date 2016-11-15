@@ -122,3 +122,25 @@ func TestDeletePathPrefix(t *testing.T) {
 		t.Error("should have got 1, got", len(allEntries))
 	}
 }
+
+func TestReadEntriesByMd5(t *testing.T) {
+	db := NewTempDB()
+	defer db.Close()
+
+	items := []*FileEntry{
+		NewTestFileEntry().SetPath("/foo1.txt"),
+		NewTestFileEntry().SetPath("/foo2.txt").SetMd5("39879ddb5f9936cee72ff46ece623183"),
+		NewTestFileEntry().SetPath("/foo3.txt"),
+	}
+	db.StoreFileEntries(items)
+
+	items1 := db.ReadFileEntriesByMd5(items[0].Md5)
+	if len(items1) != 2 {
+		t.Error("wrong number of items, got", len(items1))
+	}
+
+	items2 := db.ReadFileEntriesByMd5(items[1].Md5)
+	if len(items2) != 1 {
+		t.Error("wrong number of items, got", len(items2))
+	}
+}

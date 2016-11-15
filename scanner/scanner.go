@@ -67,17 +67,22 @@ func (scanner *Scanner) processFile(path string) {
 		logger.Tracef(" ... changed since last scan: %s", path)
 		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
-		item := filedb.NewBlankFileEntry().
-			SetPath(path).
-			SetLength(length).
-			SetLastMod(lastMod).
-			SetMd5(hex.EncodeToString(md5)).
-			SetScanTime(time.Now().Unix())
-		scanner.Db.StoreFileEntry(*item)
-		if prev == nil {
-			scanner.incFilesAdded(1)
+		if md5 == nil || len(md5) != 16 {
+			logger.Infof("WARNING: unable to compute MD5 for %s", path)
+			return
 		} else {
-			scanner.incFilesUpdated()
+			item := filedb.NewBlankFileEntry().
+				SetPath(path).
+				SetLength(length).
+				SetLastMod(lastMod).
+				SetMd5(hex.EncodeToString(md5)).
+				SetScanTime(time.Now().Unix())
+			scanner.Db.StoreFileEntry(*item)
+			if prev == nil {
+				scanner.incFilesAdded(1)
+			} else {
+				scanner.incFilesUpdated()
+			}
 		}
 	} else {
 		// file has not been updated ... only need to get our current

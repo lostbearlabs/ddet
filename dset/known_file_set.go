@@ -1,7 +1,9 @@
 package dset
 
 import (
+	"com.lostbearlabs/ddet/bloom"
 	"com.lostbearlabs/ddet/filedb"
+	"encoding/hex"
 	"github.com/juju/loggo"
 	"sort"
 )
@@ -41,24 +43,70 @@ type FilesWithSameKey struct {
 type KnownFileSet struct {
 	mp       map[KnownFileKey]*FilesWithSameKey
 	numFiles int64
+	bf1      bloom.BloomFilter
+	mp2      map[string]bool
 }
 
 func New() *KnownFileSet {
 	mp := make(map[KnownFileKey]*FilesWithSameKey)
-	return &KnownFileSet{mp, 0}
+	mp2 := make(map[string]bool)
+	bf, _ := bloom.New()
+
+	return &KnownFileSet{mp, 0, bf, mp2}
 }
 
 func (k *KnownFileSet) GetNumFiles() int64 {
 	return k.numFiles
 }
 
-// TODO: if we process a zillion files, the KnownFileSet will get full of single-file entries.
-// Use a bloom filter to provide some pre-filtering?
 func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
-	db.ProcessAllFileEntries(k.Add, path)
+	// Identify all the MD5 values that occur more than once
+	db.ProcessAllFileEntries(k.populateFilters, path)
+	logger.Infof("first pass identified %d potential groups of duplicates", len(k.mp2))
+
+	// Group into file sets.
+
+	// Approach #1: Re-scan database:
+	// db.ProcessAllFileEntries(k.Add, path)
+
+	// Approach #2: Query by MD5
+	for md5, _ := range k.mp2 {
+		items := db.ReadFileEntriesByMd5(md5)
+		for _, item := range items {
+			k.Add(item)
+		}
+	}
+}
+
+func considerPanic(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (k *KnownFileSet) populateFilters(e filedb.FileEntry) {
+	md5, err := hex.DecodeString(e.Md5)
+	considerPanic(err)
+
+	known, err := k.bf1.Contains(md5)
+	if err != nil {
+		logger.Infof("ERROR: [%v] from [%v] with md5 decoded as [%v]", err, e, md5)
+		return
+	}
+
+	if known && !k.mp2[e.Md5] {
+		logger.Tracef("found interesting MD5: %v", e.Md5)
+		k.mp2[e.Md5] = true
+	} else {
+		k.bf1.Add(md5)
+	}
 }
 
 func (k *KnownFileSet) Add(e filedb.FileEntry) {
+	if !k.mp2[e.Md5] {
+		return
+	}
+
 	key := KnownFileKey{e.Md5, e.Length}
 	l, prs := k.mp[key]
 	if !prs {

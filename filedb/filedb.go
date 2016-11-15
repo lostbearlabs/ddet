@@ -71,6 +71,8 @@ func createTableIfNotExists(db *sql.DB) {
 		Md5 TEXT NOT NULL,
 		ScanTime INT NOT NULL 
 	);
+	CREATE INDEX IF NOT EXISTS idx_md5
+		ON files (Md5);
 	`
 
 	_, err := db.Exec(sql_table)
@@ -140,6 +142,36 @@ func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
 		result = append(result, e)
 	}
 	filedb.ProcessAllFileEntries(appendFn, "/")
+	return result
+}
+
+func (filedb *FileDB) ReadFileEntriesByMd5(md5 string) []FileEntry {
+	var result []FileEntry
+	filedb.mx.Lock()
+	defer filedb.mx.Unlock()
+
+	sql_readall := `
+	SELECT Path, Length, LastMod, Md5, ScanTime 
+	FROM files 
+	WHERE MD5=?
+	ORDER BY Path
+	`
+
+	stmt, err := filedb.db.Prepare(sql_readall)
+	considerPanic(err)
+	defer stmt.Close()
+
+	rows, err := stmt.Query(md5)
+	considerPanic(err)
+	defer rows.Close()
+
+	for rows.Next() {
+		item := NewBlankFileEntry()
+		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
+		//fmt.Printf("row: %v\n", item)
+		considerPanic(err2)
+		result = append(result, *item)
+	}
 	return result
 }
 

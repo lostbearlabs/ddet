@@ -13,7 +13,7 @@ func NewBlankFileEntry() *FileEntry {
 }
 
 func NewTestFileEntry() *FileEntry {
-	return &FileEntry{"a.txt", 128, 0, "XXXX", 100000}
+	return &FileEntry{"a.txt", 128, 0, "8d9ace9df01c0c0876a95c3f810e7e9a", 100000}
 }
 
 func (f *FileEntry) SetPath(path string) *FileEntry {

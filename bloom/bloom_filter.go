@@ -1,4 +1,4 @@
-package bloom_filter
+package bloom
 
 import (
 	"errors"
