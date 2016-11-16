@@ -27,53 +27,48 @@ func (a ByLength) Less(i, j int) bool {
 	return (a[i].length < a[j].length) || ((a[i].length == a[j].length) && (a[i].md5 < a[j].md5))
 }
 
-// A set of files with the same key.
-type FilesWithSameKey struct {
-	key KnownFileKey
-
-	// The individual entries are keyed by path.
-	// (We could just use a list, but this strictly prevents
-	// duplicates and avoids the mis-apprehension that the
-	// set might be sorted)
-	entries map[string]*filedb.FileEntry
-}
-
 // A set of files, from which we can extract any duplicate files,
 // i.e. sets of multiple files with the same key.
 type KnownFileSet struct {
-	mp       map[KnownFileKey]*FilesWithSameKey
+	// total number of files processed, whether duplicated or not
 	numFiles int64
-	bf1      bloom.BloomFilter
-	mp2      map[string]bool
+
+	// weak filter of all MD5s
+	bf1 bloom.BloomFilter
+	// stronger filter of MD5s that occur more than onces in bf1
+	mp2 map[string]bool
+	// strongest filter, counting occurences of (MD5,Length) pairs for the
+	// MD5 values present in mp2
+	knownKeys map[KnownFileKey]uint64
 }
 
 func New() *KnownFileSet {
-	mp := make(map[KnownFileKey]*FilesWithSameKey)
+	knownKeys := make(map[KnownFileKey]uint64)
 	mp2 := make(map[string]bool)
 	bf, _ := bloom.New()
 
-	return &KnownFileSet{mp, 0, bf, mp2}
+	return &KnownFileSet{0, bf, mp2, knownKeys}
 }
 
 func (k *KnownFileSet) GetNumFiles() int64 {
 	return k.numFiles
 }
 
+// Adds all files from the database (prefixed by the specified path)
+// to the KnownFileSet.
 func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
-	// Identify all the MD5 values that occur more than once
+
+	// Weakly identify all the MD5 values that occur more than once
 	db.ProcessAllFileEntries(k.populateFilters, path)
 	logger.Infof("first pass identified %d potential groups of duplicates", len(k.mp2))
 
-	// Group into file sets.
-
-	// Approach #1: Re-scan database:
-	// db.ProcessAllFileEntries(k.Add, path)
-
-	// Approach #2: Query by MD5
+	// Process the candidate MD5s and group into (MD5,Length) pairs.
 	for md5, _ := range k.mp2 {
 		items := db.ReadFileEntriesByMd5(md5)
-		for _, item := range items {
-			k.Add(item)
+		if len(items) > 1 {
+			for _, item := range items {
+				k.addToKnownKeys(item)
+			}
 		}
 	}
 }
@@ -84,6 +79,7 @@ func considerPanic(err error) {
 	}
 }
 
+// Used to weakly identify candidates for MD5 duplication.
 func (k *KnownFileSet) populateFilters(e filedb.FileEntry) {
 	md5, err := hex.DecodeString(e.Md5)
 	considerPanic(err)
@@ -100,38 +96,29 @@ func (k *KnownFileSet) populateFilters(e filedb.FileEntry) {
 	} else {
 		k.bf1.Add(md5)
 	}
+
+	k.numFiles++
 }
 
-func (k *KnownFileSet) Add(e filedb.FileEntry) {
+// For files whose MD5 values are already suspected of being duplicated, this
+// populates our main map of knownKeys with the count for each (MD5,Length) pair.
+func (k *KnownFileSet) addToKnownKeys(e filedb.FileEntry) {
 	if !k.mp2[e.Md5] {
 		return
 	}
 
 	key := KnownFileKey{e.Md5, e.Length}
-	l, prs := k.mp[key]
-	if !prs {
-		entries := make(map[string]*filedb.FileEntry)
-		l = &FilesWithSameKey{key, entries}
-		k.mp[key] = l
-		logger.Tracef("created bucket for %v", key)
-	}
-	if l.entries[e.Path] == nil {
-		tag := ""
-		if len(l.entries) > 0 {
-			tag = "  !!DUPLICATE!!  "
-		}
-		logger.Tracef("key=%v, adding path %v%s\n", key, e.Path, tag)
-		l.entries[e.Path] = &e
-		k.numFiles++
-	}
+	count, _ := k.knownKeys[key]
+	k.knownKeys[key] = count + 1
 }
 
+// Returns the (MD5,Length) pairs that really do correspond to duplicate files.
 func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 	keys := make([]KnownFileKey, 0)
 
-	for x, val := range k.mp {
-		if len(val.entries) > 1 {
-			keys = append(keys, x)
+	for key, count := range k.knownKeys {
+		if count > 1 {
+			keys = append(keys, key)
 		}
 	}
 
@@ -141,21 +128,16 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 	return keys
 }
 
-func (k *KnownFileSet) GetFileEntries(key KnownFileKey) []*filedb.FileEntry {
-	list := k.mp[key]
+// Returns the file entries for a particular (MD5,Length) pair.
+func (k *KnownFileSet) GetFileEntries(db *filedb.FileDB, key KnownFileKey) []filedb.FileEntry {
 
-	paths := make([]string, 0)
-	for path, _ := range list.entries {
-		paths = append(paths, path)
+	ar := make([]filedb.FileEntry, 0)
+	items := db.ReadFileEntriesByMd5(key.md5)
+	for _, item := range items {
+		if item.Length == key.length {
+			ar = append(ar, item)
+		}
 	}
-	logger.Tracef("paths: %v\n", paths)
-	sort.Strings(paths)
-	logger.Tracef("sorted paths: %s\n", paths)
 
-	ar := make([]*filedb.FileEntry, 0)
-	for _, path := range paths {
-		ar = append(ar, list.entries[path])
-	}
-	logger.Tracef("ar: %v\n", ar)
 	return ar
 }

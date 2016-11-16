@@ -37,13 +37,13 @@ func TestSingleDupReturnsIt(t *testing.T) {
 		t.Error("length should be 1, was", len(dupKeys))
 	}
 
-	entries := ks.GetFileEntries(dupKeys[0])
+	entries := ks.GetFileEntries(db, dupKeys[0])
 	if len(entries) != 2 {
 		t.Error("length should be 2, was", len(entries))
 	}
 	for i, entry := range entries {
-		if *entry != *items[i] {
-			t.Error("bad value at index ", i, " got ", *items[i], " expected ", *entry)
+		if entry != *items[i] {
+			t.Error("bad value at index ", i, " got ", entry, " expected ", *items[i])
 		}
 	}
 }

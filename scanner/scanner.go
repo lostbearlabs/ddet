@@ -68,7 +68,7 @@ func (scanner *Scanner) processFile(path string) {
 		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
 		if md5 == nil || len(md5) != 16 {
-			logger.Infof("WARNING: unable to compute MD5 for %s", path)
+			logger.Warningf("unable to read file %s", path)
 			return
 		} else {
 			item := filedb.NewBlankFileEntry().
