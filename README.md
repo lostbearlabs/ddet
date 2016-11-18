@@ -17,6 +17,7 @@ ddet is a simple go program, so it builds with the standard toolchain:
     $> cd src/com.lostbearlabs/ddet
     $> go build
 
+To work on this project, I have used a public workspace in the Cloud9 hosted IDE:  https://c9.io/lostbearlabs/lostbearlabs-dup-detection
 
 ## Usage
 
