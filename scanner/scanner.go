@@ -60,12 +60,15 @@ func (scanner *Scanner) processFile(path string) {
 	defer scanner.wg.Done()
 
 	//log.Trace("process: %s", path)
-	changed, prev := scanner.isFileChanged(path)
+	length, lastMod, _ := GetFileStats(path)
+	if length == 0 {
+		return
+	}
+	changed, prev := scanner.isFileChanged(path, length, lastMod)
 
 	if changed {
 		// file has been added or updated ... recompute its MD5
 		logger.Tracef(" ... changed since last scan: %s", path)
-		length, lastMod, _ := GetFileStats(path)
 		md5, _ := ComputeMd5(path)
 		if md5 == nil || len(md5) != 16 {
 			logger.Warningf("unable to read file %s", path)
@@ -94,15 +97,13 @@ func (scanner *Scanner) processFile(path string) {
 
 }
 
-func (scanner *Scanner) isFileChanged(path string) (bool, *filedb.FileEntry) {
+func (scanner *Scanner) isFileChanged(path string, length int64, lastMod int64) (bool, *filedb.FileEntry) {
 
 	prev := scanner.Db.ReadFileEntry(path)
 
 	if prev == nil {
 		return true, nil
 	}
-
-	length, lastMod, _ := GetFileStats(path)
 
 	rc := prev.Length != length || prev.LastMod != lastMod
 	return rc, prev
