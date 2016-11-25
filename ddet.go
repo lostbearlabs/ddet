@@ -57,7 +57,10 @@ func doScan(path string) {
 
 	dbpath := "ddet.db"
 
-	db := filedb.InitDB(dbpath)
+	db, err := filedb.InitDB(dbpath)
+	if err != nil {
+		panic(err)
+	}
 	defer db.Close()
 
 	scanFiles(path, db)
@@ -76,7 +79,10 @@ func scanFiles(path string, db *filedb.FileDB) {
 		}
 	}()
 
-	scanner.ScanFiles(path)
+	err := scanner.ScanFiles(path)
+	if err != nil {
+		panic(err)
+	}
 
 	ticker.Stop()
 

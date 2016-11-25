@@ -5,7 +5,7 @@ import (
 )
 
 func TestReadAllFileEntries(t *testing.T) {
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -14,7 +14,7 @@ func TestReadAllFileEntries(t *testing.T) {
 	}
 	db.StoreFileEntries(items)
 
-	allFileEntries := db.ReadAllFileEntries()
+	allFileEntries, _ := db.ReadAllFileEntries()
 	t.Log(allFileEntries)
 
 	items2 := []*FileEntry{
@@ -23,7 +23,7 @@ func TestReadAllFileEntries(t *testing.T) {
 	}
 	db.StoreFileEntries(items2)
 
-	allFileEntriess2 := db.ReadAllFileEntries()
+	allFileEntriess2, _ := db.ReadAllFileEntries()
 	t.Log(allFileEntriess2)
 
 	if len(allFileEntriess2) != 4 {
@@ -38,7 +38,7 @@ func TestReadAllFileEntries(t *testing.T) {
 }
 
 func TestReadFileEntry(t *testing.T) {
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -63,7 +63,7 @@ func TestReadFileEntry(t *testing.T) {
 }
 
 func TestReadFileEntryForUnknownPath(t *testing.T) {
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -81,7 +81,7 @@ func TestReadFileEntryForUnknownPath(t *testing.T) {
 }
 
 func TestDeleteOldEntries(t *testing.T) {
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -92,13 +92,13 @@ func TestDeleteOldEntries(t *testing.T) {
 	db.StoreFileEntries(items)
 
 	db.DeleteOldEntries("/", 200)
-	allEntries := db.ReadAllFileEntries()
+	allEntries, _ := db.ReadAllFileEntries()
 	if len(allEntries) != 2 {
 		t.Error("should have got 2, got", len(allEntries))
 	}
 
 	db.DeleteOldEntries("/", 301)
-	allEntries = db.ReadAllFileEntries()
+	allEntries, _ = db.ReadAllFileEntries()
 	if len(allEntries) != 0 {
 		t.Error("should have got 0, got", len(allEntries))
 	}
@@ -106,7 +106,7 @@ func TestDeleteOldEntries(t *testing.T) {
 
 func TestDeletePathPrefix(t *testing.T) {
 
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{
@@ -117,14 +117,14 @@ func TestDeletePathPrefix(t *testing.T) {
 	db.StoreFileEntries(items)
 
 	db.DeleteOldEntries("/a", 500)
-	allEntries := db.ReadAllFileEntries()
+	allEntries, _ := db.ReadAllFileEntries()
 	if len(allEntries) != 1 {
 		t.Error("should have got 1, got", len(allEntries))
 	}
 }
 
 func TestReadEntriesByMd5(t *testing.T) {
-	db := NewTempDB()
+	db, _ := NewTempDB()
 	defer db.Close()
 
 	items := []*FileEntry{

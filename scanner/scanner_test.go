@@ -28,13 +28,13 @@ func TestScan(t *testing.T) {
 	ioutil.WriteFile(name2, []byte("constant text string 22"), 0644)
 	ioutil.WriteFile(name3, []byte("constant text string 333"), 0644)
 
-	db := filedb.NewTempDB()
+	db, _ := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)
 	scanner.ScanFiles(dir)
 
-	allFileEntriess := db.ReadAllFileEntries()
+	allFileEntriess, _ := db.ReadAllFileEntries()
 	if len(allFileEntriess) != 3 {
 		t.Error("wrong length, expected=3, got=", len(allFileEntriess))
 	}
@@ -52,7 +52,7 @@ func TestScanUnchangedFile(t *testing.T) {
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	db := filedb.NewTempDB()
+	db, _ := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)
@@ -77,7 +77,7 @@ func TestScanChangedFile(t *testing.T) {
 	name1 := dir + "/file1"
 	ioutil.WriteFile(name1, []byte("constant text string 1"), 0644)
 
-	db := filedb.NewTempDB()
+	db, _ := filedb.NewTempDB()
 	defer db.Close()
 
 	scanner := MakeScanner(db)

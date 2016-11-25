@@ -2,6 +2,7 @@ package filedb
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/juju/loggo"
 	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
@@ -31,29 +32,38 @@ func considerPanic(err error) {
 	}
 }
 
-func InitDB(filepath string) *FileDB {
+func InitDB(filepath string) (*FileDB, error) {
 	db, err := sql.Open("sqlite3", filepath)
-	considerPanic(err)
-
-	if db == nil {
-		panic("db nil")
+	if err != nil {
+		return nil, err
 	}
-	createTableIfNotExists(db)
+	if db == nil {
+		return nil, errors.New("DB nil")
+	}
+
+	err = createTableIfNotExists(db)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 
 	mx := new(sync.Mutex)
 
 	filedb := FileDB{db, mx, "", ""}
-	return &filedb
+	return &filedb, nil
 }
 
-func NewTempDB() *FileDB {
+func NewTempDB() (*FileDB, error) {
 	dbdir, _ := ioutil.TempDir(os.TempDir(), "db")
 	dbpath := dbdir + "/foo.db"
 
-	f := InitDB(dbpath)
+	f, err := InitDB(dbpath)
+	if err != nil {
+		return nil, err
+	}
 	f.tempDir = dbdir
 	f.tempFile = dbpath
-	return f
+	return f, nil
 }
 
 func (filedb *FileDB) Close() {
@@ -61,15 +71,19 @@ func (filedb *FileDB) Close() {
 
 	if filedb.tempFile != "" {
 		err := os.Remove(filedb.tempFile)
-		considerPanic(err)
+		if err != nil {
+			logger.Errorf("Unable to clean up temp file %s, error is %v", filedb.tempFile, err)
+		}
 	}
 	if filedb.tempDir != "" {
 		err := os.Remove(filedb.tempDir)
-		considerPanic(err)
+		if err != nil {
+			logger.Errorf("Unable to clean up temp folder %s, error is %v", filedb.tempDir, err)
+		}
 	}
 }
 
-func createTableIfNotExists(db *sql.DB) {
+func createTableIfNotExists(db *sql.DB) error {
 	sql_table := `
 	CREATE TABLE IF NOT EXISTS files(
 		Path TEXT NOT NULL PRIMARY KEY,
@@ -83,14 +97,14 @@ func createTableIfNotExists(db *sql.DB) {
 	`
 
 	_, err := db.Exec(sql_table)
-	considerPanic(err)
+	return err
 }
 
-func (filedb *FileDB) StoreFileEntry(item FileEntry) {
-	filedb.StoreFileEntries([]*FileEntry{&item})
+func (filedb *FileDB) StoreFileEntry(item FileEntry) error {
+	return filedb.StoreFileEntries([]*FileEntry{&item})
 }
 
-func (filedb *FileDB) StoreFileEntries(items []*FileEntry) {
+func (filedb *FileDB) StoreFileEntries(items []*FileEntry) error {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
@@ -105,16 +119,22 @@ func (filedb *FileDB) StoreFileEntries(items []*FileEntry) {
 	`
 
 	stmt, err := filedb.db.Prepare(sql_additem)
-	considerPanic(err)
+	if err != nil {
+		return err
+	}
 	defer stmt.Close()
 
 	for _, item := range items {
-		_, err2 := stmt.Exec(item.Path, item.Length, item.LastMod, item.Md5, item.ScanTime)
-		considerPanic(err2)
+		_, err := stmt.Exec(item.Path, item.Length, item.LastMod, item.Md5, item.ScanTime)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
+func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) error {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
@@ -126,7 +146,9 @@ func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
 	`
 
 	stmt, err := filedb.db.Prepare(sql_readall)
-	considerPanic(err)
+	if err != nil {
+		return err
+	}
 	defer stmt.Close()
 
 	//fmt.Printf("path is: %s\n", path)
@@ -136,20 +158,22 @@ func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) {
 
 	for rows.Next() {
 		item := NewBlankFileEntry()
-		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
-		//fmt.Printf("row: %v\n", item)
-		considerPanic(err2)
+		err := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
+		if err != nil {
+			return err
+		}
 		fn(*item)
 	}
+	return nil
 }
 
-func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
+func (filedb *FileDB) ReadAllFileEntries() ([]FileEntry, error) {
 	var result []FileEntry
 	appendFn := func(e FileEntry) {
 		result = append(result, e)
 	}
-	filedb.ProcessAllFileEntries(appendFn, "/")
-	return result
+	err := filedb.ProcessAllFileEntries(appendFn, "/")
+	return result, err
 }
 
 func (filedb *FileDB) ReadFileEntriesByKnownFileKey(md5 string, length int64) []FileEntry {
@@ -204,7 +228,7 @@ func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {
 	}
 }
 
-func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) uint64 {
+func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) (uint64, error) {
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
 
@@ -216,12 +240,19 @@ func (filedb *FileDB) DeleteOldEntries(path string, cutoff int64) uint64 {
 	`
 
 	stmt, err := filedb.db.Prepare(sql_delete)
-	considerPanic(err)
+	if err != nil {
+		return 0, err
+	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(cutoff, path+"%")
-	considerPanic(err)
+	if err != nil {
+		return 0, err
+	}
+
 	rows, err := result.RowsAffected()
-	considerPanic(err)
-	return uint64(rows)
+	if err != nil {
+		return 0, err
+	}
+	return uint64(rows), nil
 }

@@ -58,7 +58,11 @@ func (k *KnownFileSet) GetNumFiles() int64 {
 func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
 
 	// Weakly identify all the keys that occur more than once
-	db.ProcessAllFileEntries(k.populateFilters, path)
+	err := db.ProcessAllFileEntries(k.populateFilters, path)
+	if err != nil {
+		logger.Errorf("error processing file entries [%v]", err)
+		return
+	}
 	logger.Infof("first pass identified %d potential groups of duplicates", len(k.mp2))
 
 	// Re-process all the candidate keys to identify the ones that are really duplicated
@@ -72,20 +76,17 @@ func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
 	}
 }
 
-func considerPanic(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 // Used to weakly identify candidates for MD5 duplication.
 func (k *KnownFileSet) populateFilters(e filedb.FileEntry) {
 	md5, err := hex.DecodeString(e.Md5)
-	considerPanic(err)
+	if err != nil {
+		logger.Errorf("got error [%v] decoding md5 for [%v]", err, e)
+		return
+	}
 
 	known, err := k.wf.contains(md5, e.Length)
 	if err != nil {
-		logger.Infof("ERROR: [%v] from [%v] with md5 decoded as [%v]", err, e, md5)
+		logger.Errorf("got error [%v] from [%v] with md5 decoded as [%v]", err, e, md5)
 		return
 	}
 

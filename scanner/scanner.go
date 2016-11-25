@@ -81,7 +81,10 @@ func (scanner *Scanner) processFile(path string) {
 				SetLastMod(lastMod).
 				SetMd5(hex.EncodeToString(md5)).
 				SetScanTime(time.Now().Unix())
-			scanner.Db.StoreFileEntry(*item)
+			err := scanner.Db.StoreFileEntry(*item)
+			if err != nil {
+				logger.Errorf("Error [%v] storing [%v]", err, item)
+			}
 			if prev == nil {
 				scanner.incFilesAdded(1)
 			} else {
@@ -92,7 +95,10 @@ func (scanner *Scanner) processFile(path string) {
 		// file has not been updated ... only need to get our current
 		// scan time into the database
 		prev.SetScanTime(time.Now().Unix())
-		scanner.Db.StoreFileEntry(*prev)
+		err := scanner.Db.StoreFileEntry(*prev)
+		if err != nil {
+			logger.Errorf("Error [%v] storing [%v]", err, *prev)
+		}
 	}
 
 }
@@ -128,7 +134,7 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 	return nil
 }
 
-func (scanner *Scanner) ScanFiles(dir string) {
+func (scanner *Scanner) ScanFiles(dir string) error {
 	scanTime := time.Now().Unix()
 	logger.Infof("Scanning folder %v", dir)
 
@@ -143,8 +149,13 @@ func (scanner *Scanner) ScanFiles(dir string) {
 
 	// Clean up any old database entries that were not refreshed
 	// during this scan.
-	deleted := scanner.Db.DeleteOldEntries(dir, scanTime)
+	deleted, err := scanner.Db.DeleteOldEntries(dir, scanTime)
+	if err != nil {
+		return err
+	}
 	scanner.incFilesDeleted(deleted)
+
+	return nil
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {

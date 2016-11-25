@@ -17,7 +17,7 @@ func TestEmptyReturnsNone(t *testing.T) {
 }
 
 func TestSingleDupReturnsIt(t *testing.T) {
-	db := filedb.NewTempDB()
+	db, _ := filedb.NewTempDB()
 	defer db.Close()
 
 	items := []*filedb.FileEntry{
@@ -49,7 +49,7 @@ func TestSingleDupReturnsIt(t *testing.T) {
 }
 
 func NonDupNotReturned(t *testing.T) {
-	db := filedb.NewTempDB()
+	db, _ := filedb.NewTempDB()
 	defer db.Close()
 
 	items := []*filedb.FileEntry{
