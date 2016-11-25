@@ -26,12 +26,6 @@ type FileDB struct {
 	tempFile string
 }
 
-func considerPanic(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func InitDB(filepath string) (*FileDB, error) {
 	db, err := sql.Open("sqlite3", filepath)
 	if err != nil {
@@ -153,7 +147,9 @@ func (filedb *FileDB) ProcessAllFileEntries(fn func(FileEntry), path string) err
 
 	//fmt.Printf("path is: %s\n", path)
 	rows, err := stmt.Query(path + "%")
-	considerPanic(err)
+	if err != nil {
+		return err
+	}
 	defer rows.Close()
 
 	for rows.Next() {
@@ -176,7 +172,7 @@ func (filedb *FileDB) ReadAllFileEntries() ([]FileEntry, error) {
 	return result, err
 }
 
-func (filedb *FileDB) ReadFileEntriesByKnownFileKey(md5 string, length int64) []FileEntry {
+func (filedb *FileDB) ReadFileEntriesByKnownFileKey(md5 string, length int64) ([]FileEntry, error) {
 	var result []FileEntry
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
@@ -189,21 +185,26 @@ func (filedb *FileDB) ReadFileEntriesByKnownFileKey(md5 string, length int64) []
 	`
 
 	stmt, err := filedb.db.Prepare(sql_readall)
-	considerPanic(err)
+	if err != nil {
+		return nil, err
+	}
 	defer stmt.Close()
 
 	rows, err := stmt.Query(md5, length)
-	considerPanic(err)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
 	for rows.Next() {
 		item := NewBlankFileEntry()
-		err2 := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
-		//fmt.Printf("row: %v\n", item)
-		considerPanic(err2)
+		err := rows.Scan(&item.Path, &item.Length, &item.LastMod, &item.Md5, &item.ScanTime)
+		if err != nil {
+			return nil, err
+		}
 		result = append(result, *item)
 	}
-	return result
+	return result, nil
 }
 
 func (filedb *FileDB) ReadFileEntry(path string) *FileEntry {

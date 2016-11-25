@@ -37,7 +37,7 @@ func TestSingleDupReturnsIt(t *testing.T) {
 		t.Error("length should be 1, was", len(dupKeys))
 	}
 
-	entries := ks.GetFileEntries(db, dupKeys[0])
+	entries, _ := ks.GetFileEntries(db, dupKeys[0])
 	if len(entries) != 2 {
 		t.Error("length should be 2, was", len(entries))
 	}

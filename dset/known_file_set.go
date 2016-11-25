@@ -67,7 +67,11 @@ func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
 
 	// Re-process all the candidate keys to identify the ones that are really duplicated
 	for key, _ := range k.mp2 {
-		items := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
+		items, err := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
+		if err != nil {
+			logger.Errorf("error reading entries for key [%v]: [%v]", key, err)
+			return
+		}
 		if len(items) > 1 {
 			for _, item := range items {
 				k.addToKnownKeys(item)
@@ -130,15 +134,18 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 }
 
 // Returns the file entries for a particular (MD5,Length) pair.
-func (k *KnownFileSet) GetFileEntries(db *filedb.FileDB, key KnownFileKey) []filedb.FileEntry {
+func (k *KnownFileSet) GetFileEntries(db *filedb.FileDB, key KnownFileKey) ([]filedb.FileEntry, error) {
 
 	ar := make([]filedb.FileEntry, 0)
-	items := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
+	items, err := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
+	if err != nil {
+		return nil, err
+	}
 	for _, item := range items {
 		if item.Length == key.length {
 			ar = append(ar, item)
 		}
 	}
 
-	return ar
+	return ar, nil
 }

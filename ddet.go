@@ -108,7 +108,10 @@ func analyzeDuplicates(db *filedb.FileDB, path string) {
 	logger.Infof("found %d groups of duplicate files, %d files total", len(dupKeys), ks.GetNumFiles())
 
 	for _, key := range dupKeys {
-		entries := ks.GetFileEntries(db, key)
+		entries, err := ks.GetFileEntries(db, key)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("Files with MD5 %s and length %d:\n", entries[0].Md5, entries[0].Length)
 		for _, entry := range entries {
 			fmt.Printf("   %s\n", entry.Path)
