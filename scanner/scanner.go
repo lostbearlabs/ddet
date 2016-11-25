@@ -13,6 +13,8 @@ import (
 
 var logger = loggo.GetLogger("scanner")
 
+// Scanner walks a file tree, updating the FileDB with current information
+// for each file found and collecting some statistics along the way.
 type Scanner struct {
 	Db           *filedb.FileDB
 	wg           *sync.WaitGroup
@@ -59,7 +61,6 @@ func (scanner *Scanner) processFile(path string) {
 	defer scanner.incFilesScanned()
 	defer scanner.wg.Done()
 
-	//log.Trace("process: %s", path)
 	length, lastMod, _ := GetFileStats(path)
 	if length == 0 {
 		return
@@ -93,7 +94,6 @@ func (scanner *Scanner) processFile(path string) {
 		prev.SetScanTime(time.Now().Unix())
 		scanner.Db.StoreFileEntry(*prev)
 	}
-	//log.Trace("processed: %s", path)
 
 }
 
@@ -132,14 +132,17 @@ func (scanner *Scanner) ScanFiles(dir string) {
 	scanTime := time.Now().Unix()
 	logger.Infof("Scanning folder %v", dir)
 
-	// parallel scanning
+	// Walk the file tree, and kick off a separate parallel goroutine
+	// to process each file that's visited.
 	filepath.Walk(dir, scanner.visit)
 	logger.Tracef("all visited")
 
-	// wait until all visited files are processed
+	// Wait until all visited files are processed
 	scanner.wg.Wait()
 	logger.Tracef("all processed")
 
+	// Clean up any old database entries that were not refreshed
+	// during this scan.
 	deleted := scanner.Db.DeleteOldEntries(dir, scanTime)
 	scanner.incFilesDeleted(deleted)
 }

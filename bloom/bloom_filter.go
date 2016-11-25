@@ -3,12 +3,14 @@ package bloom
 import (
 	"crypto/md5"
 	"errors"
-	//	"fmt"
 )
 
 const num_slots = 5192
 const slots_per_entry = 2
 
+// This Bloom filter implementation is used to maintain our week filter of
+// candidate duplicate file keys.  We assume that all entries in the filter
+// will be MD5 hashes to ensure good distribution of values.
 type BloomFilter struct {
 	ar []byte
 }
@@ -21,7 +23,6 @@ func toSlot(i int, ar []byte) int {
 	a := int(ar[i*2])
 	b := int(ar[i*2+1])
 	slot := (a<<8 + b) % num_slots
-	// fmt.Printf("a=%d, b=%d, slot=%d\n", a, b, slot)
 	return slot
 }
 

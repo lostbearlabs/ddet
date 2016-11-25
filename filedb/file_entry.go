@@ -1,5 +1,9 @@
 package filedb
 
+// This is the information we store for each file.
+// The KnownFileSet relies on the Md5 and Length to identify
+// duplicates;  the Scanner relies on the LastMod, Length, and
+// ScanTime to identify which files need to be re-hashed.
 type FileEntry struct {
 	Path     string
 	Length   int64

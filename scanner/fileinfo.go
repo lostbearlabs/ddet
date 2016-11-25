@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// This file contains some utility methods used by the scanner to
+// examine and hash files.
+
 // from: http://dev.pawelsz.eu/2014/11/google-golang-compute-md5-of-file.html
 func ComputeMd5(filePath string) ([]byte, error) {
 	var result []byte
@@ -23,6 +26,7 @@ func ComputeMd5(filePath string) ([]byte, error) {
 	return hash.Sum(result), nil
 }
 
+// Returns the length and lastModTime for the specified path.
 func GetFileStats(filePath string) (int64, int64, error) {
 	file, err := os.Open(filePath)
 	if err != nil {

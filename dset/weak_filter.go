@@ -6,6 +6,11 @@ import (
 	"encoding/binary"
 )
 
+// This is the weak filter used internally to the KnownFileSet in order
+// to improve the space efficiency of duplicate detection.  Our KnownFileKey
+// contains both the file MD5 and the file length, but our Bloom filter
+// implementation can only handle MD5 hashes, so this class just re-hashes the
+// full key and then keeps the result in a bloom filter.
 type weakFilter struct {
 	bloom bloom.BloomFilter
 }

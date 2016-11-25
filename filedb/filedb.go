@@ -11,6 +11,13 @@ import (
 
 var logger = loggo.GetLogger("scanner")
 
+// This is the database we use to store FileEntry values during
+// and between runs.  We use a persistent database in order to avoid
+// re-hashing files on every run and also to allow for more files than
+// we could handle in memory alone.
+//
+// A FileDB should be acquired via either InitDB() or NewTempDB() and
+// *must* be closed by calling Close().
 type FileDB struct {
 	db       *sql.DB
 	mx       *sync.Mutex
