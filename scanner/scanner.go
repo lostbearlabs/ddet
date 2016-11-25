@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -16,49 +15,13 @@ var logger = loggo.GetLogger("scanner")
 // Scanner walks a file tree, updating the FileDB with current information
 // for each file found and collecting some statistics along the way.
 type Scanner struct {
-	Db           *filedb.FileDB
-	wg           *sync.WaitGroup
-	filesFound   uint64
-	filesScanned uint64
-	filesUpdated uint64
-	filesDeleted uint64
-	filesAdded   uint64
-}
-
-func (scanner *Scanner) incFilesFound() {
-	atomic.AddUint64(&scanner.filesFound, 1)
-}
-func (scanner *Scanner) incFilesScanned() {
-	atomic.AddUint64(&scanner.filesScanned, 1)
-}
-func (scanner *Scanner) incFilesUpdated() {
-	atomic.AddUint64(&scanner.filesUpdated, 1)
-}
-func (scanner *Scanner) incFilesDeleted(num uint64) {
-	atomic.AddUint64(&scanner.filesDeleted, num)
-}
-func (scanner *Scanner) incFilesAdded(num uint64) {
-	atomic.AddUint64(&scanner.filesAdded, num)
-}
-
-func (scanner *Scanner) getFilesScanned() uint64 {
-	return atomic.LoadUint64(&scanner.filesScanned)
-}
-func (scanner *Scanner) getFilesUpdated() uint64 {
-	return atomic.LoadUint64(&scanner.filesUpdated)
-}
-func (scanner *Scanner) getFilesFound() uint64 {
-	return atomic.LoadUint64(&scanner.filesFound)
-}
-func (scanner *Scanner) getFilesDeleted() uint64 {
-	return atomic.LoadUint64(&scanner.filesDeleted)
-}
-func (scanner *Scanner) getFilesAdded() uint64 {
-	return atomic.LoadUint64(&scanner.filesAdded)
+	Db    *filedb.FileDB
+	wg    *sync.WaitGroup
+	stats *scannerStats
 }
 
 func (scanner *Scanner) processFile(path string) {
-	defer scanner.incFilesScanned()
+	defer scanner.stats.incFilesScanned()
 	defer scanner.wg.Done()
 
 	length, lastMod, _ := GetFileStats(path)
@@ -86,9 +49,9 @@ func (scanner *Scanner) processFile(path string) {
 				logger.Errorf("Error [%v] storing [%v]", err, item)
 			}
 			if prev == nil {
-				scanner.incFilesAdded(1)
+				scanner.stats.incFilesAdded(1)
 			} else {
-				scanner.incFilesUpdated()
+				scanner.stats.incFilesUpdated()
 			}
 		}
 	} else {
@@ -128,7 +91,7 @@ func (scanner *Scanner) visit(path string, f os.FileInfo, err error) error {
 		//log.Trace("visited: %s", path)
 
 		scanner.wg.Add(1)
-		scanner.incFilesFound()
+		scanner.stats.incFilesFound()
 		go scanner.processFile(path)
 	}
 	return nil
@@ -153,21 +116,22 @@ func (scanner *Scanner) ScanFiles(dir string) error {
 	if err != nil {
 		return err
 	}
-	scanner.incFilesDeleted(deleted)
+	scanner.stats.incFilesDeleted(deleted)
 
 	return nil
 }
 
 func (scanner *Scanner) PrintSummary(final bool) {
 	if final {
-		logger.Infof("found %v files, %v added, %v changed, %v deleted\n", scanner.getFilesFound(), scanner.getFilesAdded(),
-			scanner.getFilesUpdated(), scanner.getFilesDeleted())
+		logger.Infof("found %v files, %v added, %v changed, %v deleted\n", scanner.stats.getFilesFound(), scanner.stats.getFilesAdded(),
+			scanner.stats.getFilesUpdated(), scanner.stats.getFilesDeleted())
 	} else {
-		logger.Infof("... processed %v/%v files\n", scanner.getFilesScanned(), scanner.getFilesFound())
+		logger.Infof("... processed %v/%v files\n", scanner.stats.getFilesScanned(), scanner.stats.getFilesFound())
 	}
 }
 
 func MakeScanner(db *filedb.FileDB) Scanner {
 	wg := new(sync.WaitGroup)
-	return Scanner{db, wg, 0, 0, 0, 0, 0}
+	stats := newScannerStats()
+	return Scanner{db, wg, stats}
 }
