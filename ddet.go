@@ -37,12 +37,13 @@ func main() {
 		util.SetLogInfo()
 	}
 
-	if numPaths == 1 {
-		doScan(path)
-	} else {
+	if numPaths != 1 {
 		fmt.Printf("Usage:\n")
-		fmt.Printf("   ddet <folder>\n")
+		fmt.Printf("   ddet <folder> [-v]\n")
+		return
 	}
+
+	doScan(path)
 }
 
 func doScan(path string) {
