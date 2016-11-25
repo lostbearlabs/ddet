@@ -58,14 +58,15 @@ func doScan(path string) {
 
 	user, err := user.Current()
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		fmt.Printf("Error getting current user: %v\n", err)
 		return
 	}
 	dbpath := user.HomeDir + "/.ddetdb"
 
 	db, err := filedb.InitDB(dbpath)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error opening ~/.ddetdb: %v", err)
+		return
 	}
 	defer db.Close()
 
@@ -74,10 +75,10 @@ func doScan(path string) {
 }
 
 func scanFiles(path string, db *filedb.FileDB) {
-
 	logger.Tracef("BEGIN SCAN: %s", path)
 	scanner := scanner.MakeScanner(db)
 
+	// while scanning, print progress once per second
 	ticker := time.NewTicker(time.Second * 1)
 	go func() {
 		for range ticker.C {
@@ -85,32 +86,36 @@ func scanFiles(path string, db *filedb.FileDB) {
 		}
 	}()
 
+	// run the scanner, populate the database
 	err := scanner.ScanFiles(path)
 	if err != nil {
 		panic(err)
 	}
 
+	// print scan results
 	ticker.Stop()
-
 	scanner.PrintSummary(true)
 	logger.Infof("COMPLETED SCAN: %s\n", path)
 
 }
 
 func analyzeDuplicates(db *filedb.FileDB, path string) {
-
 	logger.Tracef("BEGIN ANALYSIS")
 	start := time.Now()
+
+	// process file entries from the database
 	ks := dset.New()
 	ks.AddAll(db, path)
-
 	dupKeys := ks.GetDuplicateKeys()
 	logger.Infof("COMPLETED ANALYSIS, elapsed=%v\n", time.Since(start))
+
+	// print results
 
 	if dupKeys == nil || len(dupKeys) == 0 {
 		logger.Infof("NO DUPLICATES FOUND, %d files total\n", ks.GetNumFiles())
 		return
 	}
+
 	logger.Infof("found %d groups of duplicate files, %d files total", len(dupKeys), ks.GetNumFiles())
 
 	for _, key := range dupKeys {

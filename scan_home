@@ -1,4 +1,8 @@
 #! /bin/bash
+#
+# Script for running smoke tests during development ...
+# builds the program and then runs it against the cloud9 workspace folder
+
 set -e
 echo 'building...'
 go build
