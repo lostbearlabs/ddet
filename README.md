@@ -47,6 +47,8 @@ As files are processed, they are stored to a SQLite database.  This has two adva
 * our working set is stored on disk, rather than in memory.  This improves scalability, letting us run on larger file sets.
 * our working set is persistent, which means that on subsequent runs we don't need to re-examine a file's contents if its size and modification time are unchanged.  This improves performance over multiple runs.
 
+The SQLite database is named "~/.ddetdb" -- this file can be deleted to force all files to be re-hashed.
+
 Files with length zero are ignored.
 
 To deal with deleted files, we update each scanned file with a timestamp.  At the end of a scan we delete any unmarked files.

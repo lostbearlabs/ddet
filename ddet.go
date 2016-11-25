@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/juju/loggo"
 	"os"
+	"os/user"
 	"time"
 )
 
@@ -55,7 +56,12 @@ func doScan(path string) {
 		return
 	}
 
-	dbpath := "ddet.db"
+	user, err := user.Current()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	dbpath := user.HomeDir + "/.ddetdb"
 
 	db, err := filedb.InitDB(dbpath)
 	if err != nil {
