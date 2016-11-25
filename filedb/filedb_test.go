@@ -134,12 +134,12 @@ func TestReadEntriesByMd5(t *testing.T) {
 	}
 	db.StoreFileEntries(items)
 
-	items1 := db.ReadFileEntriesByMd5(items[0].Md5)
+	items1 := db.ReadFileEntriesByKnownFileKey(items[0].Md5, items[0].Length)
 	if len(items1) != 2 {
 		t.Error("wrong number of items, got", len(items1))
 	}
 
-	items2 := db.ReadFileEntriesByMd5(items[1].Md5)
+	items2 := db.ReadFileEntriesByKnownFileKey(items[1].Md5, items[1].Length)
 	if len(items2) != 1 {
 		t.Error("wrong number of items, got", len(items2))
 	}

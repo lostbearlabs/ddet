@@ -1,7 +1,6 @@
 package dset
 
 import (
-	"com.lostbearlabs/ddet/bloom"
 	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
 	"github.com/juju/loggo"
@@ -33,21 +32,21 @@ type KnownFileSet struct {
 	// total number of files processed, whether duplicated or not
 	numFiles int64
 
-	// weak filter of all MD5s
-	bf1 bloom.BloomFilter
-	// stronger filter of MD5s that occur more than onces in bf1
-	mp2 map[string]bool
-	// strongest filter, counting occurences of (MD5,Length) pairs for the
-	// MD5 values present in mp2
+	// weak filter of all keys
+	wf *weakFilter
+	// stronger filter of keys that occur more than once in wf
+	mp2 map[KnownFileKey]bool
+	// strongest filter, counting occurences of each key for each
+	// key that really is duplicated
 	knownKeys map[KnownFileKey]uint64
 }
 
 func New() *KnownFileSet {
 	knownKeys := make(map[KnownFileKey]uint64)
-	mp2 := make(map[string]bool)
-	bf, _ := bloom.New()
+	mp2 := make(map[KnownFileKey]bool)
+	wf, _ := newWeakFilter()
 
-	return &KnownFileSet{0, bf, mp2, knownKeys}
+	return &KnownFileSet{0, wf, mp2, knownKeys}
 }
 
 func (k *KnownFileSet) GetNumFiles() int64 {
@@ -58,13 +57,13 @@ func (k *KnownFileSet) GetNumFiles() int64 {
 // to the KnownFileSet.
 func (k *KnownFileSet) AddAll(db *filedb.FileDB, path string) {
 
-	// Weakly identify all the MD5 values that occur more than once
+	// Weakly identify all the keys that occur more than once
 	db.ProcessAllFileEntries(k.populateFilters, path)
 	logger.Infof("first pass identified %d potential groups of duplicates", len(k.mp2))
 
-	// Process the candidate MD5s and group into (MD5,Length) pairs.
-	for md5, _ := range k.mp2 {
-		items := db.ReadFileEntriesByMd5(md5)
+	// Re-process all the candidate keys to identify the ones that are really duplicated
+	for key, _ := range k.mp2 {
+		items := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
 		if len(items) > 1 {
 			for _, item := range items {
 				k.addToKnownKeys(item)
@@ -84,30 +83,31 @@ func (k *KnownFileSet) populateFilters(e filedb.FileEntry) {
 	md5, err := hex.DecodeString(e.Md5)
 	considerPanic(err)
 
-	known, err := k.bf1.Contains(md5)
+	known, err := k.wf.contains(md5, e.Length)
 	if err != nil {
 		logger.Infof("ERROR: [%v] from [%v] with md5 decoded as [%v]", err, e, md5)
 		return
 	}
 
-	if known && !k.mp2[e.Md5] {
-		logger.Tracef("found interesting MD5: %v", e.Md5)
-		k.mp2[e.Md5] = true
+	key := KnownFileKey{e.Md5, e.Length}
+	if known && !k.mp2[key] {
+		logger.Tracef("found interesting key: %v", key)
+		k.mp2[key] = true
 	} else {
-		k.bf1.Add(md5)
+		k.wf.add(md5, e.Length)
 	}
 
 	k.numFiles++
 }
 
-// For files whose MD5 values are already suspected of being duplicated, this
+// For files whose keys are already suspected of being duplicated, this
 // populates our main map of knownKeys with the count for each (MD5,Length) pair.
 func (k *KnownFileSet) addToKnownKeys(e filedb.FileEntry) {
-	if !k.mp2[e.Md5] {
+	key := KnownFileKey{e.Md5, e.Length}
+	if !k.mp2[key] {
 		return
 	}
 
-	key := KnownFileKey{e.Md5, e.Length}
 	count, _ := k.knownKeys[key]
 	k.knownKeys[key] = count + 1
 }
@@ -132,7 +132,7 @@ func (k *KnownFileSet) GetDuplicateKeys() []KnownFileKey {
 func (k *KnownFileSet) GetFileEntries(db *filedb.FileDB, key KnownFileKey) []filedb.FileEntry {
 
 	ar := make([]filedb.FileEntry, 0)
-	items := db.ReadFileEntriesByMd5(key.md5)
+	items := db.ReadFileEntriesByKnownFileKey(key.md5, key.length)
 	for _, item := range items {
 		if item.Length == key.length {
 			ar = append(ar, item)

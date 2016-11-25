@@ -145,7 +145,7 @@ func (filedb *FileDB) ReadAllFileEntries() []FileEntry {
 	return result
 }
 
-func (filedb *FileDB) ReadFileEntriesByMd5(md5 string) []FileEntry {
+func (filedb *FileDB) ReadFileEntriesByKnownFileKey(md5 string, length int64) []FileEntry {
 	var result []FileEntry
 	filedb.mx.Lock()
 	defer filedb.mx.Unlock()
@@ -153,7 +153,7 @@ func (filedb *FileDB) ReadFileEntriesByMd5(md5 string) []FileEntry {
 	sql_readall := `
 	SELECT Path, Length, LastMod, Md5, ScanTime 
 	FROM files 
-	WHERE MD5=?
+	WHERE MD5=? and Length=?
 	ORDER BY Path
 	`
 
@@ -161,7 +161,7 @@ func (filedb *FileDB) ReadFileEntriesByMd5(md5 string) []FileEntry {
 	considerPanic(err)
 	defer stmt.Close()
 
-	rows, err := stmt.Query(md5)
+	rows, err := stmt.Query(md5, length)
 	considerPanic(err)
 	defer rows.Close()
 
