@@ -1,11 +1,11 @@
 package bloom
 
 import (
+	"crypto/md5"
 	"errors"
 	//	"fmt"
 )
 
-const md5_len = 16
 const num_slots = 5192
 const slots_per_entry = 2
 
@@ -26,7 +26,7 @@ func toSlot(i int, ar []byte) int {
 }
 
 func (filter *BloomFilter) Add(ar []byte) error {
-	if len(ar) != md5_len {
+	if len(ar) != md5.Size {
 		return errors.New("not an MD5")
 	}
 	for i := 0; i < slots_per_entry; i++ {
@@ -37,7 +37,7 @@ func (filter *BloomFilter) Add(ar []byte) error {
 }
 
 func (filter *BloomFilter) Contains(ar []byte) (bool, error) {
-	if len(ar) != md5_len {
+	if len(ar) != md5.Size {
 		return false, errors.New("not an MD5")
 	}
 	for i := 0; i < slots_per_entry; i++ {
