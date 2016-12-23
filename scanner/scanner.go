@@ -1,9 +1,9 @@
 package scanner
 
 import (
-	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
 	"github.com/juju/loggo"
+	"lostbearlabs.com/ddet/filedb"
 	"os"
 	"path/filepath"
 	"sync"

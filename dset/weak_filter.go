@@ -1,9 +1,9 @@
 package dset
 
 import (
-	"com.lostbearlabs/ddet/bloom"
 	"crypto/md5"
 	"encoding/binary"
+	"lostbearlabs.com/ddet/bloom"
 )
 
 // This is the weak filter used internally to the KnownFileSet in order

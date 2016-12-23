@@ -1,8 +1,8 @@
 package scanner
 
 import (
-	"com.lostbearlabs/ddet/filedb"
 	"io/ioutil"
+	"lostbearlabs.com/ddet/filedb"
 	"os"
 	"testing"
 )

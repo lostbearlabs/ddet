@@ -1,7 +1,7 @@
 package dset
 
 import (
-	"com.lostbearlabs/ddet/filedb"
+	"lostbearlabs.com/ddet/filedb"
 	"testing"
 )
 

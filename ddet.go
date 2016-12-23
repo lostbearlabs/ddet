@@ -1,12 +1,12 @@
 package main
 
 import (
-	"com.lostbearlabs/ddet/dset"
-	"com.lostbearlabs/ddet/filedb"
-	"com.lostbearlabs/ddet/scanner"
-	"com.lostbearlabs/ddet/util"
 	"fmt"
 	"github.com/juju/loggo"
+	"lostbearlabs.com/ddet/dset"
+	"lostbearlabs.com/ddet/filedb"
+	"lostbearlabs.com/ddet/scanner"
+	"lostbearlabs.com/ddet/util"
 	"os"
 	"os/user"
 	"time"

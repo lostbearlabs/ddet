@@ -1,9 +1,9 @@
 package dset
 
 import (
-	"com.lostbearlabs/ddet/filedb"
 	"encoding/hex"
 	"github.com/juju/loggo"
+	"lostbearlabs.com/ddet/filedb"
 	"sort"
 )
 
